@@ -9,7 +9,10 @@ main.py
   - 'stop': interrupts movement
   - 'get': returns current position
 • Logs sensor transitions and current draw
-• Renders a PNG to the DFRobot LCD display when a position is reached
+• Renders display based on mode:
+  - position: Shows position numbers (POS1.png, POS2.png, etc.)
+  - thumb: Shows thumbnails (thumb1.png, thumb2.png, etc.)
+  - kirby: Shows animated GIFs (kirby_1_speed.gif, etc.)
 • Supports remote command input via /tmp/pipe
 """
 
@@ -19,6 +22,7 @@ import signal
 import select
 import threading
 import os
+import argparse
 
 from switches import HallArray
 from relay import ActuatorRelay
@@ -49,16 +53,10 @@ MIN_EXPECTED_CURRENT_DOWN = 50  # Minimum expected current when moving down
 
 # Position sequence validation
 SEQUENCE_CHECK_INTERVAL = 0.1  # How often to check for missed positions (seconds)
-POSITION_TIMEOUT = 2.0        # Maximum time between expected positions (seconds)
 
-DISPLAY_IMAGES = {
-    "homing": "homing.png",
-    1: "POS1.png",
-    2: "POS2.png",
-    3: "POS3.png",
-    4: "POS4.png",
-    5: "POS5.png"
-}
+# Movement timeouts
+MAX_MOVEMENT_TIME = 10.0     # Maximum time for movement between positions (seconds)
+POSITION_TIMEOUT = 2.0       # Maximum time between expected positions (seconds)
 
 PIPE_PATH = "/tmp/pipe"
 POSITION_STATE_FILE = "/tmp/position_state"
@@ -123,7 +121,7 @@ def pulse_down():
     time.sleep(0.2)  # Small pause between pulses
     return True
 
-def validate_movement_sequence(start_pos, target_pos, direction, last_valid_time):
+def validate_movement_sequence(start_pos, target_pos, direction, last_valid_time, last_valid_pos):
     """Check if we're hitting expected positions in sequence"""
     current_time = time.time()
     current_pos = get_current_position()
@@ -131,7 +129,7 @@ def validate_movement_sequence(start_pos, target_pos, direction, last_valid_time
     # If we haven't seen a position for too long
     if current_time - last_valid_time > POSITION_TIMEOUT:
         print(f"WARNING: No position detected for {POSITION_TIMEOUT} seconds - check hall sensors")
-        return current_time  # Reset timer to avoid repeated warnings
+        return current_time, last_valid_pos  # Reset timer to avoid repeated warnings
         
     # If we have a position reading
     if current_pos is not None:
@@ -141,18 +139,16 @@ def validate_movement_sequence(start_pos, target_pos, direction, last_valid_time
             if current_pos in expected_positions:
                 if current_pos != start_pos + 1 and current_pos != last_valid_pos + 1:
                     print(f"WARNING: Missed position(s) between {last_valid_pos} and {current_pos}")
-                last_valid_pos = current_pos
-                return current_time
+                return current_time, current_pos
         # Moving down should trigger positions in descending order
         else:  # direction == "down"
             expected_positions = range(start_pos - 1, target_pos - 1, -1)
             if current_pos in expected_positions:
                 if current_pos != start_pos - 1 and current_pos != last_valid_pos - 1:
                     print(f"WARNING: Missed position(s) between {last_valid_pos} and {current_pos}")
-                last_valid_pos = current_pos
-                return current_time
+                return current_time, current_pos
                 
-    return last_valid_time
+    return last_valid_time, last_valid_pos
 
 def check_movement_current(direction):
     """Verify current readings are in expected range for movement direction"""
@@ -174,7 +170,7 @@ def check_movement_current(direction):
             return False  # Will be handled by collision detection
     return True
 
-def move_to_position(target_pos):
+def move_to_position(target_pos, mode):
     """Move to specified position (1-5)"""
     if not 1 <= target_pos <= 5:
         print("Invalid position. Use positions 1-5.")
@@ -231,8 +227,9 @@ def move_to_position(target_pos):
     last_valid_time = movement_start_time
     last_valid_pos = current_pos
     next_sequence_check = movement_start_time
+    reached_positions = {current_pos}  # Track positions we've seen
     
-    while time.time() - movement_start_time < max_movement_time:
+    while time.time() - movement_start_time < MAX_MOVEMENT_TIME:
         if stop_flag.is_set():
             print("Stop requested. Aborting.")
             break
@@ -241,7 +238,8 @@ def move_to_position(target_pos):
         
         # Check movement sequence periodically
         if current_time >= next_sequence_check:
-            last_valid_time = validate_movement_sequence(current_pos, target_pos, direction, last_valid_time)
+            last_valid_time, last_valid_pos = validate_movement_sequence(
+                current_pos, target_pos, direction, last_valid_time, last_valid_pos)
             next_sequence_check = current_time + SEQUENCE_CHECK_INTERVAL
             
         # Monitor current for movement issues
@@ -251,6 +249,8 @@ def move_to_position(target_pos):
                 break
         
         pos = get_current_position()
+        if pos is not None:
+            reached_positions.add(pos)
         if pos == target_pos:
             print(f"Target position {target_pos} reached!")
             break
@@ -272,11 +272,8 @@ def move_to_position(target_pos):
         elif direction == "down" and not all(i in reached_positions for i in range(target_pos + 1, current_pos)):
             print("WARNING: Some positions were missed during downward movement - hall sensors may need adjustment")
             
-        # Show confirmation image if defined
-        img = DISPLAY_IMAGES.get(target_pos)
-        if img:
-            print(f"Displaying image: {img}")
-            lcd.set_background_img(1, img)
+        # Show appropriate display for the mode
+        display_image(target_pos, mode)
 
         # Save last position
         try:
@@ -289,15 +286,29 @@ def is_fumehood_ready():
     """Check if the sash is in position 5 (fully open)"""
     return get_current_position() == 5
 
-def home_on_startup():
+def display_image(position, mode):
+    """Display the appropriate image/animation based on mode and position"""
+    if position not in [1, 2, 3, 4, 5, "homing"]:
+        return
+        
+    image = DISPLAY_CONFIGS[mode][position]
+    
+    if mode == "kirby" and position != "homing":
+        print(f"Displaying GIF: {image}")
+        lcd.draw_gif_external(0, 0, image, zoom=255)
+    else:
+        print(f"Displaying image: {image}")
+        lcd.set_background_img(1, image)
+
+def home_on_startup(mode):
     """Initialize system and move to home position (position 1)"""
     print("System starting up - preparing to home...")
-    lcd.set_background_img(1, DISPLAY_IMAGES["homing"])
+    display_image("homing", mode)
     print("Waiting 10 seconds before homing sequence...")
     time.sleep(10)
     
     print("Starting homing sequence...")
-    move_to_position(1)
+    move_to_position(1, mode)
     
     if get_current_position() == 1:
         print("Homing complete - system ready")
@@ -322,65 +333,107 @@ def clean_exit(_sig=None,_frame=None):
 signal.signal(signal.SIGINT, clean_exit)
 signal.signal(signal.SIGTERM, clean_exit)
 
-# Initialize system
-print(f"Calibration register: 0x{sensor.cal_value_read():04X}")
+# Display configurations for different modes
+DISPLAY_CONFIGS = {
+    "position": {
+        "homing": "homing.png",
+        1: "POS1.png",
+        2: "POS2.png",
+        3: "POS3.png",
+        4: "POS4.png",
+        5: "POS5.png"
+    },
+    "thumb": {
+        "homing": "homing.png",
+        1: "thumb1.png",
+        2: "thumb2.png",
+        3: "thumb3.png",
+        4: "thumb4.png",
+        5: "thumb5.png"
+    },
+    "kirby": {
+        "homing": "homing.png",
+        1: "kirby_1_speed.gif",
+        2: "kirby_2_speed.gif",
+        3: "kirby_3_speed.gif",
+        4: "kirby_4_speed.gif",
+        5: "kirby_5_speed.gif"
+    }
+}
 
-# Perform homing sequence
-home_on_startup()
+def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Fume hood sash control with different display modes')
+    parser.add_argument('mode', choices=['position', 'thumb', 'kirby'],
+                      help='Display mode: position (position numbers), thumb (thumbs), or kirby (gifs)')
+    args = parser.parse_args()
 
-# create named pipe if it doesn't exist
-if not os.path.exists(PIPE_PATH):
-    os.mkfifo(PIPE_PATH)
+    global DISPLAY_IMAGES
+    DISPLAY_IMAGES = DISPLAY_CONFIGS[args.mode]
 
-pipe_fd = os.open(PIPE_PATH, os.O_RDONLY | os.O_NONBLOCK)
+    # Initialize system
+    print(f"Starting in {args.mode} mode")
+    print(f"Calibration register: 0x{sensor.cal_value_read():04X}")
 
-print("System ready. Commands: 'position N' (N=1-5), 'stop', 'get', or 'check_ready'. Ctrl-C to exit.")
+    # Perform homing sequence
+    home_on_startup(args.mode)
 
-move_thread = None
+    # create named pipe if it doesn't exist
+    if not os.path.exists(PIPE_PATH):
+        os.mkfifo(PIPE_PATH)
 
-def read_command():
-    if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-        return input().strip().lower()
-    try:
-        data = os.read(pipe_fd, 1024).decode().strip()
-        return data if data else None
-    except BlockingIOError:
-        return None
+    pipe_fd = os.open(PIPE_PATH, os.O_RDONLY | os.O_NONBLOCK)
 
-while True:
-    try:
-        cmd = read_command()
-        if cmd:
-            if cmd.startswith("position "):
-                try:
-                    pos = int(cmd.split()[1])
-                    if 1 <= pos <= 5:
-                        if move_thread and move_thread.is_alive():
-                            print("Actuator already moving.")
+    print("System ready. Commands: 'position N' (N=1-5), 'stop', 'get', or 'check_ready'. Ctrl-C to exit.")
+
+    move_thread = None
+
+    def read_command():
+        if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+            return input().strip().lower()
+        try:
+            data = os.read(pipe_fd, 1024).decode().strip()
+            return data if data else None
+        except BlockingIOError:
+            return None
+
+    while True:
+        try:
+            cmd = read_command()
+            if cmd:
+                if cmd.startswith("position "):
+                    try:
+                        pos = int(cmd.split()[1])
+                        if 1 <= pos <= 5:
+                            if move_thread and move_thread.is_alive():
+                                print("Actuator already moving.")
+                            else:
+                                move_thread = threading.Thread(target=move_to_position, args=(pos, args.mode))
+                                move_thread.start()
                         else:
-                            move_thread = threading.Thread(target=move_to_position, args=(pos,))
-                            move_thread.start()
+                            print("Invalid position. Use positions 1-5.")
+                    except (IndexError, ValueError):
+                        print("Invalid command format. Use 'position N' where N is 1-5.")
+                elif cmd == "stop":
+                    stop_flag.set()
+                    print("Stop signal sent.")
+                elif cmd == "get":
+                    pos = get_current_position()
+                    if pos is not None:
+                        print(f"Current position: {pos}")
                     else:
-                        print("Invalid position. Use positions 1-5.")
-                except (IndexError, ValueError):
-                    print("Invalid command format. Use 'position N' where N is 1-5.")
-            elif cmd == "stop":
-                stop_flag.set()
-                print("Stop signal sent.")
-            elif cmd == "get":
-                pos = get_current_position()
-                if pos is not None:
-                    print(f"Current position: {pos}")
+                        print("Position unknown (no hall sensor active)")
+                elif cmd == "check_ready":
+                    if is_fumehood_ready():
+                        print("Fumehood is ready - sash fully open")
+                    else:
+                        print("Fumehood not ready - sash not fully open")
                 else:
-                    print("Position unknown (no hall sensor active)")
-            elif cmd == "check_ready":
-                if is_fumehood_ready():
-                    print("Fumehood is ready - sash fully open")
-                else:
-                    print("Fumehood not ready - sash not fully open")
-            else:
-                print("Unknown command.")
+                    print("Unknown command.")
 
-        time.sleep(.1)  # Removed the continuous current printing
-    except KeyboardInterrupt:
-        clean_exit()
+            time.sleep(.1)
+        except KeyboardInterrupt:
+            clean_exit()
+
+if __name__ == "__main__":
+    main()
