@@ -60,7 +60,10 @@ POSITION_TIMEOUT = 2.0       # Maximum time between expected positions (seconds)
 
 PIPE_PATH = "/tmp/pipe"
 POSITION_STATE_FILE = "/tmp/position_state"
-# -----------------------------
+
+# Global variables
+display_mode = None  # Will be set to 'position', 'thumb', or 'kirby'
+current_position = None
 
 # initialize modules
 relay = ActuatorRelay(RELAY_EXT, RELAY_RET)
@@ -73,12 +76,14 @@ lcd.clean_screen()
 print(f"Calibration register: 0x{sensor.cal_value_read():04X}")
 
 # Current position tracking
-current_position = None
 def hall_callback(ch, state, idx):
-    global current_position
+    global current_position, display_mode
     if state == 0:  # Magnet detected
         current_position = idx + 1
         print(f"Position {current_position} reached (GPIO{ch})")
+        # Update display for the current mode
+        if display_mode is not None:
+            display_image(current_position, display_mode)
     else:
         print(f"Left position {idx + 1} (GPIO{ch})")
 
@@ -348,15 +353,15 @@ def main():
                       help='Display mode: position (position numbers), thumb (thumbs), or kirby (gifs)')
     args = parser.parse_args()
 
-    global DISPLAY_IMAGES
-    DISPLAY_IMAGES = DISPLAY_CONFIGS[args.mode]
+    global display_mode
+    display_mode = args.mode
 
     # Initialize system
-    print(f"Starting in {args.mode} mode")
+    print(f"Starting in {display_mode} mode")
     print(f"Calibration register: 0x{sensor.cal_value_read():04X}")
 
     # Perform homing sequence
-    home_on_startup(args.mode)
+    home_on_startup(display_mode)
 
     # create named pipe if it doesn't exist
     if not os.path.exists(PIPE_PATH):
@@ -388,7 +393,7 @@ def main():
                             if move_thread and move_thread.is_alive():
                                 print("Actuator already moving.")
                             else:
-                                move_thread = threading.Thread(target=move_to_position, args=(pos, args.mode))
+                                move_thread = threading.Thread(target=move_to_position, args=(pos, display_mode))
                                 move_thread.start()
                         else:
                             print("Invalid position. Use positions 1-5.")
