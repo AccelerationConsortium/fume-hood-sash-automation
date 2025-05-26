@@ -47,9 +47,9 @@ CURRENT_THRESHOLD_DOWN = 2000   # Raw shunt value threshold when moving down
 CURRENT_SAMPLES = 2           # Number of consecutive samples needed to trigger
 
 # Current monitoring thresholds
-MIN_EXPECTED_CURRENT_UP = 100   # Minimum expected current when moving up
-MAX_EXPECTED_CURRENT_UP = 800   # Maximum normal current when moving up (below collision threshold)
-MIN_EXPECTED_CURRENT_DOWN = 50  # Minimum expected current when moving down
+MIN_EXPECTED_CURRENT_UP = -5   # Minimum expected current when moving up
+MAX_EXPECTED_CURRENT_UP = 1500   # Maximum normal current when moving up (below collision threshold)
+MIN_EXPECTED_CURRENT_DOWN = -5  # Minimum expected current when moving down
 
 # Position sequence validation
 SEQUENCE_CHECK_INTERVAL = 0.1  # How often to check for missed positions (seconds)
