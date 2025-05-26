@@ -298,11 +298,9 @@ def display_image(position, mode):
     if position == "homing":
         print("Displaying initialization message")
         lcd.clean_screen()
-        lcd.set_text_size(2)  # Larger text size
-        lcd.set_cursor(10, 60)  # Center the text vertically and horizontally
-        lcd.print_str("Initializing")
-        lcd.set_cursor(10, 90)
-        lcd.print_str("Fume Hood Sash")
+        # Draw text in white (0xFFFFFF)
+        lcd.draw_string(10, 60, "Initializing", font=1, color=0xFFFFFF)
+        lcd.draw_string(10, 90, "Fume Hood Sash", font=1, color=0xFFFFFF)
         return
         
     if position not in [1, 2, 3, 4, 5]:
