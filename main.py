@@ -80,12 +80,11 @@ def hall_callback(ch, state, idx):
     global current_position, display_mode
     if state == 0:  # Magnet detected
         current_position = idx + 1
-        print(f"Position {current_position} reached (GPIO{ch})")
-        # Update display for the current mode
+        print(f"Position {current_position} reached")
         if display_mode is not None:
             display_image(current_position, display_mode)
     else:
-        print(f"Left position {idx + 1} (GPIO{ch})")
+        print(f"Left position {idx + 1}")
 
 hall.set_callback(hall_callback)
 
@@ -105,7 +104,6 @@ def check_current_threshold(threshold, direction):
     high_current_count = 0
     for _ in range(CURRENT_SAMPLES):
         amps = sensor.read_raw_shunt()
-        print(f"Current reading: {amps}")
         if direction == "up" and amps > threshold:
             high_current_count += 1
         elif direction == "down" and amps < threshold:
@@ -121,8 +119,7 @@ def pulse_down():
     relay.down_on()
     
     # Add delay to skip initial current spike
-    print("Waiting for initial current spike to settle...")
-    time.sleep(0.5)  # 500ms delay to skip inrush current
+    time.sleep(1)  # 1s delay to skip inrush current
     
     start_time = time.time()
     initial_position = current_position  # Capture initial position
@@ -135,7 +132,7 @@ def pulse_down():
             
         # If we detect a new position different from initial
         if current_position is not None and current_position != initial_position:
-            print(f"Found position {current_position} during pulse")
+            print(f"Found position {current_position}")
             relay.all_off()
             return True
         time.sleep(0.01)
@@ -176,13 +173,12 @@ def validate_movement_sequence(start_pos, target_pos, direction, last_valid_time
 def check_movement_current(direction):
     """Check current readings and detect collisions"""
     amps = sensor.read_raw_shunt()
-    print(f"Current reading: {amps}")
     
     if direction == "up" and amps > CURRENT_THRESHOLD_UP:
-        print(f"WARNING: High current detected ({amps}) - possible upward collision!")
+        print(f"Object detected during upward movement")
         return False
     elif direction == "down" and amps < CURRENT_THRESHOLD_DOWN:
-        print(f"WARNING: High current detected ({amps}) - possible downward collision!")
+        print(f"Object detected during downward movement")
         return False
     return True
 
@@ -206,7 +202,7 @@ def move_to_position(target_pos, mode):
         # Try up to 5 pulses to find position
         for pulse in range(5):
             if stop_flag.is_set():
-                print("Stop requested. Aborting.")
+                print("Stop requested")
                 relay.all_off()
                 return
                 
@@ -219,17 +215,16 @@ def move_to_position(target_pos, mode):
                 time.sleep(0.1)  # Short pause before continuing
                 break
         else:
-            print("ERROR: Could not determine position after 5 pulses.")
-            print("Please manually move the actuator to a known position (aligned with a hall sensor).")
+            print("Could not determine position after 5 pulses")
             return
     
     # Now we know our position, move to target
     if current_pos < target_pos:
-        print(f"Moving UP from position {current_pos} to position {target_pos}...")
+        print(f"Moving UP from position {current_pos} to position {target_pos}")
         direction = "up"
         relay.up_on()
     else:
-        print(f"Moving DOWN from position {current_pos} to position {target_pos}...")
+        print(f"Moving DOWN from position {current_pos} to position {target_pos}")
         direction = "down"
         relay.down_on()
 
@@ -246,7 +241,7 @@ def move_to_position(target_pos, mode):
     
     while time.time() - movement_start_time < MAX_MOVEMENT_TIME:
         if stop_flag.is_set():
-            print("Stop requested. Aborting.")
+            print("Stop requested")
             break
             
         current_time = time.time()
@@ -259,7 +254,7 @@ def move_to_position(target_pos, mode):
             
         # Monitor current for movement issues
         if not check_movement_current(direction):
-            print("Stopping movement due to current threshold exceeded!")
+            print("Movement stopped")
             break
         
         pos = get_current_position()
@@ -268,15 +263,13 @@ def move_to_position(target_pos, mode):
         if pos == target_pos:
             print(f"Target position {target_pos} reached!")
             break
-        elif pos is None:
-            print("Warning: Lost position tracking during movement")
             
         time.sleep(0.01)
     else:
-        print("Movement timed out. Please check for mechanical issues.")
+        print("Movement timed out")
 
     relay.all_off()
-    print("Movement complete.")
+    print("Movement complete")
 
     # Verify final position and expected sequence
     final_pos = get_current_position()
@@ -302,7 +295,17 @@ def is_fumehood_ready():
 
 def display_image(position, mode):
     """Display the appropriate image/animation based on mode and position"""
-    if position not in [1, 2, 3, 4, 5, "homing"]:
+    if position == "homing":
+        print("Displaying initialization message")
+        lcd.clean_screen()
+        lcd.set_text_size(2)  # Larger text size
+        lcd.set_cursor(10, 60)  # Center the text vertically and horizontally
+        lcd.print_str("Initializing")
+        lcd.set_cursor(10, 90)
+        lcd.print_str("Fume Hood Sash")
+        return
+        
+    if position not in [1, 2, 3, 4, 5]:
         return
         
     image = DISPLAY_CONFIGS[mode][position]
@@ -318,8 +321,8 @@ def home_on_startup(mode):
     """Initialize system and move to home position (position 1)"""
     print("System starting up - preparing to home...")
     display_image("homing", mode)
-    print("Waiting 10 seconds before homing sequence...")
-    time.sleep(10)
+    print("Waiting 5 seconds before homing sequence...")
+    time.sleep(5)
     
     print("Starting homing sequence...")
     move_to_position(1, mode)
@@ -328,7 +331,7 @@ def home_on_startup(mode):
         print("Homing complete - system ready")
         return True
     else:
-        print("WARNING: Homing failed - manual intervention may be required")
+        print("Homing failed")
         return False
 
 # clean exit handler
@@ -350,7 +353,6 @@ signal.signal(signal.SIGTERM, clean_exit)
 # Display configurations for different modes
 DISPLAY_CONFIGS = {
     "position": {
-        "homing": "homing.png",
         1: "POS1.png",
         2: "POS2.png",
         3: "POS3.png",
@@ -358,7 +360,6 @@ DISPLAY_CONFIGS = {
         5: "POS5.png"
     },
     "thumb": {
-        "homing": "homing.png",
         1: "thumb1.png",
         2: "thumb2.png",
         3: "thumb3.png",
@@ -366,7 +367,6 @@ DISPLAY_CONFIGS = {
         5: "thumb5.png"
     },
     "kirby": {
-        "homing": "homing.png",
         1: "kirby_1_speed.gif",
         2: "kirby_2_speed.gif",
         3: "kirby_3_speed.gif",
