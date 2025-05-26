@@ -33,8 +33,8 @@ from lcd_display_DFR0997 import DFRobotLCD
 HALL_PINS = [5, 6, 13, 19, 26]  # BCM pins for Hall sensors
 BOUNCE_MS = 10                   # debounce in ms
 
-RELAY_EXT = 17                   # GPIO energises UP relay
-RELAY_RET = 27                   # GPIO energises DOWN relay
+RELAY_EXT = 27                   # GPIO energises UP relay
+RELAY_RET = 17                   # GPIO energises DOWN relay
 
 I2C_BUS  = 1                     # Pi I2C bus
 INA_ADDR = 0x45                  # INA219 address
