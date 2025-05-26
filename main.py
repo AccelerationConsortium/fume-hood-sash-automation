@@ -42,9 +42,9 @@ R_SHUNT  = 0.1                   # Ω
 I_MAX    = 3.0                   # A full-scale
 
 # Current thresholds for collision detection
-CURRENT_THRESHOLD_UP = 1000    # Raw shunt value threshold when moving up
-CURRENT_THRESHOLD_DOWN = 900   # Raw shunt value threshold when moving down
-CURRENT_SAMPLES = 1           # Number of consecutive samples needed to trigger
+CURRENT_THRESHOLD_UP = 2000    # Raw shunt value threshold when moving up
+CURRENT_THRESHOLD_DOWN = 2000   # Raw shunt value threshold when moving down
+CURRENT_SAMPLES = 2           # Number of consecutive samples needed to trigger
 
 # Current monitoring thresholds
 MIN_EXPECTED_CURRENT_UP = 100   # Minimum expected current when moving up
