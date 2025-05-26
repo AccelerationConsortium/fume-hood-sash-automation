@@ -96,26 +96,18 @@ def get_current_position():
     return None
 
 def check_current_threshold(threshold):
-    """Check if current exceeds threshold for multiple samples"""
-    high_current_count = 0
-    for _ in range(CURRENT_SAMPLES):
-        amps = sensor.read_raw_shunt()
-        if amps > threshold:
-            high_current_count += 1
-        else:
-            high_current_count = 0  # Reset on any low reading
-        time.sleep(0.01)  # Small delay between readings
-    return high_current_count == CURRENT_SAMPLES
+    """Print current readings every 0.2 seconds"""
+    amps = sensor.read_raw_shunt()
+    print(f"Current reading: {amps}")
+    time.sleep(0.2)  # Delay between readings
+    return False  # Never trigger threshold
 
 def pulse_down():
     """Pulse the down relay for 1 second"""
     relay.down_on()
     start_time = time.time()
     while time.time() - start_time < 1.0:
-        if check_current_threshold(CURRENT_THRESHOLD_DOWN):
-            print("WARNING: High current detected during pulse - possible collision!")
-            relay.all_off()
-            return False
+        check_current_threshold(0)  # Just print current readings
         time.sleep(0.01)
     relay.all_off()
     time.sleep(0.2)  # Small pause between pulses
@@ -151,24 +143,9 @@ def validate_movement_sequence(start_pos, target_pos, direction, last_valid_time
     return last_valid_time, last_valid_pos
 
 def check_movement_current(direction):
-    """Verify current readings are in expected range for movement direction"""
-    amps = sensor.read_raw_shunt()
-    
-    if direction == "up":
-        if amps < MIN_EXPECTED_CURRENT_UP:
-            print(f"WARNING: Current too low for upward movement ({amps}) - check if actuator is engaged")
-            return False
-        elif MIN_EXPECTED_CURRENT_UP <= amps <= MAX_EXPECTED_CURRENT_UP:
-            return True
-        elif amps > CURRENT_THRESHOLD_UP:
-            return False  # Will be handled by collision detection
-    else:  # direction == "down"
-        if amps < MIN_EXPECTED_CURRENT_DOWN:
-            print(f"WARNING: Current too low for downward movement ({amps}) - check if actuator is engaged")
-            return False
-        elif amps > CURRENT_THRESHOLD_DOWN:
-            return False  # Will be handled by collision detection
-    return True
+    """Print current readings"""
+    check_current_threshold(0)  # Just print current readings
+    return True  # Always allow movement to continue
 
 def move_to_position(target_pos, mode):
     """Move to specified position (1-5)"""
@@ -242,11 +219,8 @@ def move_to_position(target_pos, mode):
                 current_pos, target_pos, direction, last_valid_time, last_valid_pos)
             next_sequence_check = current_time + SEQUENCE_CHECK_INTERVAL
             
-        # Monitor current for movement issues
-        if not check_movement_current(direction):
-            if check_current_threshold(current_threshold):
-                print("WARNING: High current detected - possible collision! Stopping movement.")
-                break
+        # Monitor and print current readings
+        check_movement_current(direction)
         
         pos = get_current_position()
         if pos is not None:
