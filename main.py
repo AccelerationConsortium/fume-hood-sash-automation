@@ -104,11 +104,20 @@ def check_current_threshold(threshold):
 
 def pulse_down():
     """Pulse the down relay for 1 second"""
+    global current_position
     relay.down_on()
     start_time = time.time()
+    initial_position = current_position  # Capture initial position
+    
     while time.time() - start_time < 1.0:
         check_current_threshold(0)  # Just print current readings
+        # If we detect a new position different from initial
+        if current_position is not None and current_position != initial_position:
+            print(f"Found position {current_position} during pulse")
+            relay.all_off()
+            return True
         time.sleep(0.01)
+    
     relay.all_off()
     time.sleep(0.2)  # Small pause between pulses
     return True
@@ -172,14 +181,11 @@ def move_to_position(target_pos, mode):
                 return
                 
             print(f"Pulse {pulse + 1}/5...")
-            if not pulse_down():  # Stop if collision detected
-                print("Search aborted due to possible collision.")
-                return
+            pulse_down()  # Position will be updated by hall_callback if detected
             
-            pos = get_current_position()
-            if pos is not None:
-                print(f"Found position {pos}")
-                current_pos = pos
+            current_pos = current_position  # Use the global current_position
+            if current_pos is not None:
+                print(f"Found position {current_pos}")
                 time.sleep(0.1)  # Short pause before continuing
                 break
         else:
