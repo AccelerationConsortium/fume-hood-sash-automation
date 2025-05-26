@@ -119,6 +119,11 @@ def pulse_down():
     """Pulse the down relay for 1 second"""
     global current_position
     relay.down_on()
+    
+    # Add delay to skip initial current spike
+    print("Waiting for initial current spike to settle...")
+    time.sleep(0.5)  # 500ms delay to skip inrush current
+    
     start_time = time.time()
     initial_position = current_position  # Capture initial position
     
@@ -223,12 +228,14 @@ def move_to_position(target_pos, mode):
         print(f"Moving UP from position {current_pos} to position {target_pos}...")
         direction = "up"
         relay.up_on()
-        current_threshold = CURRENT_THRESHOLD_UP
     else:
         print(f"Moving DOWN from position {current_pos} to position {target_pos}...")
         direction = "down"
         relay.down_on()
-        current_threshold = CURRENT_THRESHOLD_DOWN
+
+    # Add delay to skip initial current spike
+    print("Waiting for initial current spike to settle...")
+    time.sleep(1)  # 1s delay to skip inrush current
 
     # Wait for target position or stop signal
     movement_start_time = time.time()
