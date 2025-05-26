@@ -295,12 +295,14 @@ def is_fumehood_ready():
 
 def display_image(position, mode):
     """Display the appropriate image/animation based on mode and position"""
+    # Always clean the screen first
+    lcd.clean_screen()
+    
     if position == "homing":
         print("Displaying initialization message")
-        lcd.clean_screen()
-        # Draw text in white (0xFFFFFF)
-        lcd.draw_string(10, 60, "Initializing", font=1, color=0xFFFFFF)
-        lcd.draw_string(10, 90, "Fume Hood Sash", font=1, color=0xFFFFFF)
+        # Draw text in black (0x000000)
+        lcd.draw_string(10, 60, "Initializing", font=1, color=0x000000)
+        lcd.draw_string(10, 90, "Fume Hood Sash", font=1, color=0x000000)
         return
         
     if position not in [1, 2, 3, 4, 5]:
