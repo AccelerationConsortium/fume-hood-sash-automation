@@ -42,9 +42,9 @@ R_SHUNT  = 0.1                   # Ω
 I_MAX    = 3.0                   # A full-scale
 
 # Current thresholds for collision detection
-CURRENT_THRESHOLD_UP = 2000    # Raw shunt value threshold when moving up
-CURRENT_THRESHOLD_DOWN = 2000   # Raw shunt value threshold when moving down
-CURRENT_SAMPLES = 2           # Number of consecutive samples needed to trigger
+CURRENT_THRESHOLD_UP = 1300    # Raw shunt value threshold when moving up
+CURRENT_THRESHOLD_DOWN = -1300   # Raw shunt value threshold when moving down
+CURRENT_SAMPLES = 1           # Number of consecutive samples needed to trigger
 
 # Current monitoring thresholds
 MIN_EXPECTED_CURRENT_UP = -5   # Minimum expected current when moving up
@@ -100,12 +100,20 @@ def get_current_position():
             return idx + 1
     return None
 
-def check_current_threshold(threshold):
-    """Print current readings every 0.2 seconds"""
-    amps = sensor.read_raw_shunt()
-    print(f"Current reading: {amps}")
-    time.sleep(0.2)  # Delay between readings
-    return False  # Never trigger threshold
+def check_current_threshold(threshold, direction):
+    """Check if current exceeds threshold for multiple samples"""
+    high_current_count = 0
+    for _ in range(CURRENT_SAMPLES):
+        amps = sensor.read_raw_shunt()
+        print(f"Current reading: {amps}")
+        if direction == "up" and amps > threshold:
+            high_current_count += 1
+        elif direction == "down" and amps < threshold:
+            high_current_count += 1
+        else:
+            high_current_count = 0  # Reset on any low reading
+        time.sleep(0.2)  # Delay between readings
+    return high_current_count == CURRENT_SAMPLES
 
 def pulse_down():
     """Pulse the down relay for 1 second"""
@@ -115,7 +123,11 @@ def pulse_down():
     initial_position = current_position  # Capture initial position
     
     while time.time() - start_time < 1.0:
-        check_current_threshold(0)  # Just print current readings
+        # Check for current threshold
+        if not check_movement_current("down"):
+            relay.all_off()
+            return False
+            
         # If we detect a new position different from initial
         if current_position is not None and current_position != initial_position:
             print(f"Found position {current_position} during pulse")
@@ -157,9 +169,17 @@ def validate_movement_sequence(start_pos, target_pos, direction, last_valid_time
     return last_valid_time, last_valid_pos
 
 def check_movement_current(direction):
-    """Print current readings"""
-    check_current_threshold(0)  # Just print current readings
-    return True  # Always allow movement to continue
+    """Check current readings and detect collisions"""
+    amps = sensor.read_raw_shunt()
+    print(f"Current reading: {amps}")
+    
+    if direction == "up" and amps > CURRENT_THRESHOLD_UP:
+        print(f"WARNING: High current detected ({amps}) - possible upward collision!")
+        return False
+    elif direction == "down" and amps < CURRENT_THRESHOLD_DOWN:
+        print(f"WARNING: High current detected ({amps}) - possible downward collision!")
+        return False
+    return True
 
 def move_to_position(target_pos, mode):
     """Move to specified position (1-5)"""
@@ -230,8 +250,10 @@ def move_to_position(target_pos, mode):
                 current_pos, target_pos, direction, last_valid_time, last_valid_pos)
             next_sequence_check = current_time + SEQUENCE_CHECK_INTERVAL
             
-        # Monitor and print current readings
-        check_movement_current(direction)
+        # Monitor current for movement issues
+        if not check_movement_current(direction):
+            print("Stopping movement due to current threshold exceeded!")
+            break
         
         pos = get_current_position()
         if pos is not None:
