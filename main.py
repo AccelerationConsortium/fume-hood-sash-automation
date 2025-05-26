@@ -367,11 +367,11 @@ DISPLAY_CONFIGS = {
         5: "thumb5.png"
     },
     "kirby": {
-        1: "kirby_1_speed.gif",
-        2: "kirby_2_speed.gif",
+        1: "kirby_5_speed.gif",
+        2: "kirby_4_speed.gif",
         3: "kirby_3_speed.gif",
-        4: "kirby_4_speed.gif",
-        5: "kirby_5_speed.gif"
+        4: "kirby_2_speed.gif",
+        5: "kirby_1_speed.gif"
     }
 }
 
