@@ -9,7 +9,7 @@ class ActuatorRelay:
     Logic: GPIO HIGH → relay ON,  GPIO LOW → relay OFF
     """
 
-    def __init__(self, up_pin=17, down_pin=27):
+    def __init__(self, up_pin=27, down_pin=17):
         self.up_pin   = up_pin
         self.down_pin = down_pin
 
