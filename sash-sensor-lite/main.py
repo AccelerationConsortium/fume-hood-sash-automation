@@ -1,0 +1,49 @@
+import RPi.GPIO as GPIO
+import time
+import logging
+import os
+
+# GPIO pin numbers (BCM numbering)
+HALL_SENSOR_PIN = 17  # Input from hall effect sensor
+LED_PIN = 27          # Output to LED
+
+# Setup logging
+LOG_FILE = os.path.join(os.path.dirname(__file__), "sash_sensor_lite.log")
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logging.info("--- Sash Sensor Lite Startup ---")
+
+# Setup
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(HALL_SENSOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Use pull-up resistor
+GPIO.setup(LED_PIN, GPIO.OUT)
+
+try:
+    last_state = None
+    while True:
+        hall_state = GPIO.input(HALL_SENSOR_PIN)
+        if hall_state == GPIO.LOW:
+            # Magnet present (sash up) - turn LED on
+            GPIO.output(LED_PIN, GPIO.HIGH)
+        else:
+            # Magnet not present (sash down) - turn LED off
+            GPIO.output(LED_PIN, GPIO.LOW)
+        if hall_state != last_state:
+            if hall_state == GPIO.LOW:
+                print("State changed: Magnet present (sash up)")
+                logging.info("State changed: Magnet present (sash up)")
+            else:
+                print("State changed: Magnet not present (sash down)")
+                logging.info("State changed: Magnet not present (sash down)")
+            last_state = hall_state
+        time.sleep(0.05)  # Polling delay
+except KeyboardInterrupt:
+    logging.info("KeyboardInterrupt received. Exiting main loop.")
+    pass
+finally:
+    GPIO.cleanup()
+    logging.info("GPIO cleanup complete. Program exiting.")
