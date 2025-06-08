@@ -4,6 +4,7 @@ import threading
 import socketserver
 import logging
 import os
+import hashlib
 
 # GPIO pin numbers (BCM numbering)
 HALL_SENSOR_PIN = 17  # Input from hall effect sensor
@@ -18,6 +19,17 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logging.info("--- Sash Sensor Lite Startup ---")
+
+# Log code version (SHA256 hash of this file)
+def get_code_hash():
+    try:
+        with open(__file__, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except Exception as e:
+        return f"Error computing hash: {e}"
+
+CODE_HASH = get_code_hash()
+logging.info(f"Running sash_sensor_lite/main_networked.py | SHA256: {CODE_HASH}")
 
 # Setup
 GPIO.setmode(GPIO.BCM)
@@ -93,6 +105,7 @@ def sensor_loop():
     finally:
         GPIO.cleanup()
         logging.info("GPIO cleanup complete. Program exiting.")
+        logging.info("--- Sash Sensor Lite Session End ---")
 
 if __name__ == "__main__":
     # Start sensor loop in background
