@@ -25,6 +25,7 @@ import os
 import argparse
 import logging
 import hashlib
+import datetime
 
 from switches import HallArray
 from relay import ActuatorRelay
@@ -67,16 +68,11 @@ POSITION_STATE_FILE = "/tmp/position_state"
 display_mode = None  # Will be set to 'position', 'thumb', or 'kirby'
 current_position = None
 
-# Setup logging
-LOG_FILE = "/var/log/sash_actuator.log"
-os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logging.info("--- Sash Actuator Startup ---")
+# Setup logging: create a new log file for each session in /var/log/sash_actuator/
+LOG_DIR = "/var/log/sash_actuator"
+os.makedirs(LOG_DIR, exist_ok=True)
+SESSION_TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+LOG_FILE = os.path.join(LOG_DIR, f"session_{SESSION_TIMESTAMP}.log")
 
 def get_code_hash():
     try:
@@ -84,9 +80,6 @@ def get_code_hash():
             return hashlib.sha256(f.read()).hexdigest()
     except Exception as e:
         return f"Error computing hash: {e}"
-
-CODE_HASH = get_code_hash()
-logging.info(f"Running sash-actuator/main.py | SHA256: {CODE_HASH}")
 
 # initialize modules
 relay = ActuatorRelay(RELAY_EXT, RELAY_RET)
@@ -208,6 +201,7 @@ def check_movement_current(direction):
     return True
 
 def move_to_position(target_pos, mode):
+    logging.info(f"Attempting to move actuator to position {target_pos} in mode {mode}")
     """Move to specified position (1-5)"""
     if not 1 <= target_pos <= 5:
         print("Invalid position. Use positions 1-5.")
@@ -406,7 +400,22 @@ def main():
     parser = argparse.ArgumentParser(description='Fume hood sash control with different display modes')
     parser.add_argument('mode', choices=['position', 'thumb', 'kirby'],
                       help='Display mode: position (position numbers), thumb (thumbs), or kirby (gifs)')
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+    except SystemExit as e:
+        # Argument error, do not create a log file
+        sys.exit(e.code)
+
+    # Now that arguments are valid, set up logging
+    logging.basicConfig(
+        filename=LOG_FILE,
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    logging.info("--- Sash Actuator Startup ---")
+    CODE_HASH = get_code_hash()
+    logging.info(f"Running sash-actuator/main.py | SHA256: {CODE_HASH}")
 
     global display_mode
     display_mode = args.mode
@@ -414,6 +423,8 @@ def main():
     # Initialize system
     print(f"Starting in {display_mode} mode")
     print(f"Calibration register: 0x{sensor.cal_value_read():04X}")
+    logging.info(f"Starting in {display_mode} mode")
+    logging.info(f"Calibration register: 0x{sensor.cal_value_read():04X}")
 
     # Perform homing sequence
     home_on_startup(display_mode)
@@ -425,6 +436,7 @@ def main():
     pipe_fd = os.open(PIPE_PATH, os.O_RDONLY | os.O_NONBLOCK)
 
     print("System ready. Commands: 'position N' (N=1-5), 'stop', 'get', or 'check_ready'. Ctrl-C to exit.")
+    logging.info("System ready. Commands: 'position N' (N=1-5), 'stop', 'get', or 'check_ready'. Ctrl-C to exit.")
 
     move_thread = None
 
@@ -453,7 +465,7 @@ def main():
                                 print("Actuator already moving.")
                                 logging.info("Actuator already moving.")
                             else:
-                                logging.info(f"Moving to position {pos}")
+                                logging.info(f"Command: Move to position {pos}")
                                 move_thread = threading.Thread(target=move_to_position, args=(pos, display_mode))
                                 move_thread.start()
                         else:
@@ -487,6 +499,7 @@ def main():
 
             time.sleep(.1)
         except KeyboardInterrupt:
+            print("KeyboardInterrupt received. Exiting main loop.")
             logging.info("KeyboardInterrupt received. Exiting main loop.")
             clean_exit()
 
