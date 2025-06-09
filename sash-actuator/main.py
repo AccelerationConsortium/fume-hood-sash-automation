@@ -23,6 +23,8 @@ import select
 import threading
 import os
 import argparse
+import logging
+import hashlib
 
 from switches import HallArray
 from relay import ActuatorRelay
@@ -65,6 +67,27 @@ POSITION_STATE_FILE = "/tmp/position_state"
 display_mode = None  # Will be set to 'position', 'thumb', or 'kirby'
 current_position = None
 
+# Setup logging
+LOG_FILE = "/var/log/sash_actuator.log"
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logging.info("--- Sash Actuator Startup ---")
+
+def get_code_hash():
+    try:
+        with open(__file__, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except Exception as e:
+        return f"Error computing hash: {e}"
+
+CODE_HASH = get_code_hash()
+logging.info(f"Running sash-actuator/main.py | SHA256: {CODE_HASH}")
+
 # initialize modules
 relay = ActuatorRelay(RELAY_EXT, RELAY_RET)
 sensor = CurrentSensor(address=INA_ADDR, busnum=I2C_BUS, r_shunt=R_SHUNT, i_max=I_MAX)
@@ -81,10 +104,12 @@ def hall_callback(ch, state, idx):
     if state == 0:  # Magnet detected
         current_position = idx + 1
         print(f"Position {current_position} reached")
+        logging.info(f"Position {current_position} reached (Hall sensor {idx})")
         if display_mode is not None:
             display_image(current_position, display_mode)
     else:
         print(f"Left position {idx + 1}")
+        logging.info(f"Left position {idx + 1} (Hall sensor {idx})")
 
 hall.set_callback(hall_callback)
 
@@ -345,6 +370,7 @@ def clean_exit(_sig=None,_frame=None):
         os.unlink(PIPE_PATH)
     except FileNotFoundError:
         pass
+    logging.info("--- Sash Actuator Session End ---")
     sys.exit(0)
 
 signal.signal(signal.SIGINT, clean_exit)
@@ -404,9 +430,13 @@ def main():
 
     def read_command():
         if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-            return input().strip().lower()
+            cmd = input().strip().lower()
+            logging.info(f"User input: {cmd}")
+            return cmd
         try:
             data = os.read(pipe_fd, 1024).decode().strip()
+            if data:
+                logging.info(f"Pipe input: {data}")
             return data if data else None
         except BlockingIOError:
             return None
@@ -421,32 +451,43 @@ def main():
                         if 1 <= pos <= 5:
                             if move_thread and move_thread.is_alive():
                                 print("Actuator already moving.")
+                                logging.info("Actuator already moving.")
                             else:
+                                logging.info(f"Moving to position {pos}")
                                 move_thread = threading.Thread(target=move_to_position, args=(pos, display_mode))
                                 move_thread.start()
                         else:
                             print("Invalid position. Use positions 1-5.")
+                            logging.warning("Invalid position command received.")
                     except (IndexError, ValueError):
                         print("Invalid command format. Use 'position N' where N is 1-5.")
+                        logging.warning("Invalid command format for position.")
                 elif cmd == "stop":
                     stop_flag.set()
                     print("Stop signal sent.")
+                    logging.info("Stop signal sent.")
                 elif cmd == "get":
                     pos = get_current_position()
                     if pos is not None:
                         print(f"Current position: {pos}")
+                        logging.info(f"Current position: {pos}")
                     else:
                         print("Position unknown (no hall sensor active)")
+                        logging.warning("Position unknown (no hall sensor active)")
                 elif cmd == "check_ready":
                     if is_fumehood_ready():
                         print("Fumehood is ready - sash fully open")
+                        logging.info("Fumehood is ready - sash fully open")
                     else:
                         print("Fumehood not ready - sash not fully open")
+                        logging.info("Fumehood not ready - sash not fully open")
                 else:
                     print("Unknown command.")
+                    logging.warning(f"Unknown command: {cmd}")
 
             time.sleep(.1)
         except KeyboardInterrupt:
+            logging.info("KeyboardInterrupt received. Exiting main loop.")
             clean_exit()
 
 if __name__ == "__main__":
