@@ -9,7 +9,8 @@ HALL_SENSOR_PIN = 17  # Input from hall effect sensor
 LED_PIN = 27          # Output to LED
 
 # Setup logging
-LOG_FILE = os.path.join(os.path.dirname(__file__), "sash_sensor_lite.log")
+LOG_FILE = "/var/log/sash_sensor_lite.log"
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 logging.basicConfig(
     filename=LOG_FILE,
     level=logging.INFO,
