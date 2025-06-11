@@ -457,23 +457,19 @@ def main():
         try:
             cmd = read_command()
             if cmd:
-                if cmd.startswith("position "):
-                    try:
-                        pos = int(cmd.split()[1])
-                        if 1 <= pos <= 5:
-                            if move_thread and move_thread.is_alive():
-                                print("Actuator already moving.")
-                                logging.info("Actuator already moving.")
-                            else:
-                                logging.info(f"Command: Move to position {pos}")
-                                move_thread = threading.Thread(target=move_to_position, args=(pos, display_mode))
-                                move_thread.start()
+                if cmd.startswith("p") and len(cmd) > 1 and cmd[1:].isdigit():
+                    pos = int(cmd[1:])
+                    if 1 <= pos <= 5:
+                        if move_thread and move_thread.is_alive():
+                            print("Actuator already moving.")
+                            logging.info("Actuator already moving.")
                         else:
-                            print("Invalid position. Use positions 1-5.")
-                            logging.warning("Invalid position command received.")
-                    except (IndexError, ValueError):
-                        print("Invalid command format. Use 'position N' where N is 1-5.")
-                        logging.warning("Invalid command format for position.")
+                            logging.info(f"Command: Move to position {pos}")
+                            move_thread = threading.Thread(target=move_to_position, args=(pos, display_mode))
+                            move_thread.start()
+                    else:
+                        print("Invalid position. Use p1-p5.")
+                        logging.warning("Invalid position command received.")
                 elif cmd == "stop":
                     stop_flag.set()
                     print("Stop signal sent.")
