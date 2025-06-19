@@ -1,6 +1,47 @@
 # Fume Hood Sash Automation
 
-This project provides code for automating and monitoring a laboratory fume hood sash using Raspberry Pi devices. It includes two main components:
+This project provides Python scripts to automate a fume hood sash, with options for a sensor-only or a full actuator setup.
+
+## Installation
+
+This package is designed to be installed on a Raspberry Pi. It should be installed from a clone of the repository.
+
+### Prerequisites
+
+Enable I2C on your Raspberry Pi using `raspi-config`.
+
+### Installation
+
+Clone the repository to your Raspberry Pi and install the package. The same command works for both the sensor and actuator devices.
+
+```bash
+git clone https://github.com/your-username/fume-hood-sash-automation.git
+cd fume-hood-sash-automation
+pip install .
+```
+
+## Usage
+
+After installation, you can run the scripts from the command line.
+
+### Actuator
+```bash
+actuator --help
+```
+This script will control the fume hood sash based on Hall effect sensor inputs. It can also be controlled via a named pipe at `/tmp/pipe`.
+
+### Sensor
+**Simple Sensor:**
+```bash
+sensor
+```
+This script reads a single Hall effect sensor and turns an LED on or off.
+
+**Networked Sensor:**
+```bash
+sensor-networked
+```
+This script provides a TCP server on port 5005 to get the sensor status remotely.
 
 ## 1. Sash Actuator
 Located in `sash-actuator/`
@@ -40,12 +81,6 @@ Located in `sash-sensor-lite/`
 - Relay board (for actuator)
 - LED (for sensor lite)
 - LCD display (for actuator, optional)
-
-## Usage
-- See each folder for the main script to run on your Pi.
-- For actuator: run `main.py` and use the command line or `/tmp/pipe` for control.
-- For sensor lite: run `main.py` for basic operation, or `main_networked.py` for networked operation.
-- Use `sensor_client_example.py` to connect to the sensor lite from another device.
 
 ## Notes
 - GPIO pin numbers use BCM numbering.

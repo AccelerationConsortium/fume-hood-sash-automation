@@ -108,7 +108,7 @@ def sensor_loop():
         logging.info("GPIO cleanup complete. Program exiting.")
         logging.info("--- Sash Sensor Lite Session End ---")
 
-if __name__ == "__main__":
+def main():
     # Start sensor loop in background
     t = threading.Thread(target=sensor_loop, daemon=True)
     t.start()
@@ -123,3 +123,6 @@ if __name__ == "__main__":
             print("Shutting down server...")
             GPIO.cleanup()
             logging.info("Server shutdown complete.")
+
+if __name__ == "__main__":
+    main()
