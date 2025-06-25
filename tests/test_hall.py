@@ -6,7 +6,12 @@ Polls 5 Hall effect sensors every second using your HallArray class.
 import time
 import signal
 import sys
-from hall import HallArray  # assumes hall.py is in the same directory
+import os
+
+# Add project root to Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.hood_sash_automation.actuator.switches import HallArray
 
 # Define the GPIO pins for your 5 Hall effect sensors
 HALL_PINS = [5, 6, 13, 19, 26]  # BCM pin numbers

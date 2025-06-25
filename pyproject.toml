@@ -16,13 +16,17 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["RPi.GPIO", "smbus2"]
+dependencies = ["RPi.GPIO", "Flask", "PyYAML"]
+
+[project.optional-dependencies]
+sensor = []
+actuator = ["smbus2"]
+test = ["pytest", "pytest-mock"]
 
 [project.urls]
 "Homepage" = "https://github.com/your-username/fume-hood-sash-automation"
 "Bug Tracker" = "https://github.com/your-username/fume-hood-sash-automation/issues"
 
 [project.scripts]
-actuator = "hood_sash_automation.actuator.main:main"
-sensor = "hood_sash_automation.sensor.main:main"
-sensor-networked = "hood_sash_automation.sensor.main_networked:main"
+hood_sash_automation_actuator = "hood_sash_automation.actuator.api_service:main"
+hood_sash_automation_sensor = "hood_sash_automation.sensor.api_service:main"

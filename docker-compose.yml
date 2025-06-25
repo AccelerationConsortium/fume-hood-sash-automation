@@ -1,0 +1,35 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  actuator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fume-hood/actuator
+    container_name: fume_hood_actuator
+    command: hood_sash_automation_actuator
+    ports:
+      # Expose the service's port 5000 to the same port on the host machine
+      - "5000:5000"
+    volumes:
+      # Mount the local config directory into the container.
+      # This allows you to change settings in config/actuator_config.yaml
+      # and have them reflected in the container without rebuilding.
+      - ./config:/app/config:ro
+    restart: unless-stopped
+
+  sensor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fume-hood/sensor
+    container_name: fume_hood_sensor
+    command: hood_sash_automation_sensor
+    ports:
+      # Expose the service's port 5005 to the same port on the host machine
+      - "5005:5005"
+    volumes:
+      # Mount the local config directory into the container.
+      - ./config:/app/config:ro
+    restart: unless-stopped 

@@ -1,0 +1,25 @@
+[Unit]
+Description=Fume Hood Sash Sensor Service
+# Start after the network is available
+After=network.target
+
+[Service]
+Type=simple
+# IMPORTANT: Replace 'pi' with the user that will run the script on your device.
+User=pi
+
+# IMPORTANT: The working directory should be the absolute path to the project's root.
+WorkingDirectory=/home/pi/fume-hood-sash-automation
+
+# IMPORTANT: This path assumes you create a virtual environment named 'venv' in your project root.
+# If your setup is different, change the path to point to the 'hood_sash_automation_sensor' executable.
+ExecStart=/home/pi/fume-hood-sash-automation/venv/bin/hood_sash_automation_sensor
+
+Restart=on-failure
+RestartSec=5
+# Standard output and error are sent to the systemd journal
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target 

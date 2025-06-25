@@ -1,0 +1,8 @@
+# Configuration for the Sash Sensor Service
+
+# GPIO Pins (BCM numbering)
+# -------------------------
+# The hall effect sensor that detects if the sash is present.
+hall_sensor_pin: 17
+# The LED that indicates the sash status.
+led_pin: 27 

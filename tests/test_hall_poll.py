@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 import signal
 import sys
-from hall import HallArray  # your updated hall.py
+import os
+
+# Add project root to Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.hood_sash_automation.actuator.switches import HallArray  # your updated hall.py
 
 # BCM pins for your 5 Hall sensors
 HALL_PINS = [5, 6, 13, 19, 26]

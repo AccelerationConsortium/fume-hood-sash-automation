@@ -1,95 +1,171 @@
 # Fume Hood Sash Automation
 
-This project provides Python scripts to automate a fume hood sash, with options for a sensor-only or a full actuator setup.
+This project provides a robust, API-driven system to automate a fume hood sash. It is designed to run on a Raspberry Pi as a set of managed services.
+
+## Project Structure
+
+The project is organized into two main components within the `src/hood_sash_automation` directory:
+
+-   **`actuator/`**: Contains the complete logic for controlling the motorized fume hood sash. It uses multiple Hall effect sensors for precise positioning, a relay for motor control, a current sensor for collision detection, an LCD for status display, and physical buttons for manual control. It exposes an HTTP API for remote commands.
+-   **`sensor/`**: Contains the logic for a simple, single-point sash position sensor. It exposes an HTTP API to report the current status.
 
 ## Installation
 
-This package is designed to be installed on a Raspberry Pi. It should be installed from a clone of the repository.
+This package is designed to be installed on a Raspberry Pi from a clone of this repository.
 
 ### Prerequisites
 
-Enable I2C on your Raspberry Pi using `raspi-config`.
+-   Python 3.7+
+-   Ensure I2C is enabled on your Raspberry Pi (`sudo raspi-config`).
 
-### Installation
+### Setup
 
-Clone the repository to your Raspberry Pi and install the package. The same command works for both the sensor and actuator devices.
+1.  Clone the repository to your Raspberry Pi:
+    ```bash
+    git clone https://github.com/your-username/fume-hood-sash-automation.git
+    cd fume-hood-sash-automation
+    ```
 
+2.  Create a Python virtual environment and activate it. This isolates the project's dependencies.
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+3.  Install the project and its dependencies. This command installs the package in "editable" mode, which creates executable scripts in your virtual environment's `bin/` directory. The `[actuator,sensor]` part installs the optional dependencies for both components.
+    ```bash
+    pip install --upgrade pip
+    pip install -e ".[actuator,sensor]"
+    ```
+    
+## Configuration
+
+All hardware and application settings are managed via YAML files in the `/config` directory. Before running the services, you should review and customize `config/actuator_config.yaml` and `config/sensor_config.yaml` to match your specific hardware setup (e.g., GPIO pin numbers, I2C addresses). The files are heavily commented to explain each setting.
+
+## Deployment (Systemd Services)
+
+For the services to run automatically on boot, they should be managed by `systemd`.
+
+### 1. Configure Service Files
+The service files in the `systemd/` directory are templates. You must edit them to set the correct `User` and ensure the `WorkingDirectory` points to the absolute path of your project directory on the Pi. The scripts will automatically find the config files in the `config/` subdirectory.
+
+### 2. Install the Services
+Copy the configured service files to the `systemd` directory and set the correct permissions:
 ```bash
-git clone https://github.com/your-username/fume-hood-sash-automation.git
-cd fume-hood-sash-automation
-pip install .
+sudo cp systemd/*.service /etc/systemd/system/
+sudo chmod 644 /etc/systemd/system/actuator.service
+sudo chmod 644 /etc/systemd/system/sensor.service
+```
+
+### 3. Enable and Start the Services
+Reload the `systemd` daemon to recognize the new files, then enable the services to start on boot:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable actuator.service
+sudo systemctl enable sensor.service
+```
+You can now either reboot your Pi or start the services manually:
+```bash
+sudo systemctl start actuator.service
+sudo systemctl start sensor.service
 ```
 
 ## Usage
 
-After installation, you can run the scripts from the command line.
+### Managing the Services
+- **Check Status**: 
+  ```bash
+  sudo systemctl status actuator.service
+  sudo systemctl status sensor.service
+  ```
+- **View Logs**: All output is handled by `journald`. To see the logs:
+  ```bash
+  sudo journalctl -u actuator.service -f
+  ```
+  *(The `-f` flag follows the log in real-time).*
+- **Stop/Start/Restart**:
+  ```bash
+  sudo systemctl stop actuator.service
+  sudo systemctl start actuator.service
+  sudo systemctl restart actuator.service
+  ```
 
-### Actuator
-```bash
-actuator --help
-```
-This script will control the fume hood sash based on Hall effect sensor inputs. It can also be controlled via a named pipe at `/tmp/pipe`.
+### API Endpoints
+Once the services are running, you can control them via their HTTP APIs.
 
-### Sensor
-**Simple Sensor:**
-```bash
-sensor
-```
-This script reads a single Hall effect sensor and turns an LED on or off.
+#### Actuator API (Port 5000)
+- `POST /move`: Moves the sash to a specified position.
+  - **Body**: `{"position": <1-5>}`
+- `POST /stop`: Stops any current movement.
+- `GET /status`: Returns the current status (e.g., current position, if it's moving).
+- `GET /position`: Returns the current position.
 
-**Networked Sensor:**
-```bash
-sensor-networked
-```
-This script provides a TCP server on port 5005 to get the sensor status remotely.
+#### Sensor API (Port 5005)
+- `GET /status`: Returns the sensor's status.
+  - **Response**: `{"magnet_present": <true/false>}`
 
-## 1. Sash Actuator
-Located in `sash-actuator/`
+## Remote Control Example
+The `samples/` directory contains an example script, `remote_control_example.py`, that demonstrates how to control the sash from any computer on the same network.
 
-- Controls a motorized fume hood sash using 5 Hall effect sensors for position feedback.
-- Drives a relay board to move the sash up or down.
-- Supports commands via command line and a named pipe (`/tmp/pipe`):
-  - `position N` (N=1-5): Move to a specific position.
-  - `stop`: Interrupt movement.
-  - `get`: Return current position.
-  - `check_ready`: Check if the sash is fully open.
-- Displays position and status on an LCD display.
-- Logs sensor transitions and current draw for safety and diagnostics.
+### Usage
+1.  **Install Dependencies**: The script requires the `requests` library.
+    ```bash
+    pip install requests
+    ```
+2.  **Configure Host**: Open `samples/remote_control_example.py` and change the `PI_HOST` variable to the IP address or hostname of your Raspberry Pi.
+3.  **Run the Script**:
+    ```bash
+    python samples/remote_control_example.py
+    ```
+The script will command the sash to its home position, then cycle through all other positions, and finally return home, printing status updates throughout the process.
 
-## 2. Sash Sensor Lite
-Located in `sash-sensor-lite/`
+## Testing
+This project uses `pytest` for testing. The tests are located in the `tests/` directory and use mocking to allow for testing without connected hardware.
 
-### main.py
-- Simple script for a Pi Zero 2W with one Hall effect sensor and one LED.
-- Turns the LED on when a magnet is present (sash up), off when not present (sash down).
-- Prints a message to the console whenever the sensor state changes.
+### Running Tests
+1.  **Install Test Dependencies**: First, install the testing extras.
+    ```bash
+    # Make sure your virtual environment is activated
+    pip install -e ".[test]"
+    ```
+2.  **Run Pytest**: Navigate to the project's root directory and run `pytest`.
+    ```bash
+    pytest
+    ```
+    Pytest will automatically discover and run the tests.
 
-### main_networked.py
-- Advanced version with network support.
-- Runs a TCP server (port 5005) to allow remote clients to:
-  - Query the current sensor state (`get` or `status` commands).
-  - Receive real-time notifications when the sensor state changes (push model).
-- Multiple clients can connect and will be notified immediately of sash position changes.
+## System Testing with Docker (on macOS/Windows/Linux)
+For testing the full application services without a Raspberry Pi, you can use Docker. This setup uses mock hardware libraries to simulate the Pi's environment.
 
-### sensor_client_example.py
-- Example Python client for connecting to `main_networked.py`.
-- Can query the sensor state and listen for real-time notifications.
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+### Running the Services
+1.  **Build and Run with Docker Compose**: From the project's root directory, run:
+    ```bash
+    docker-compose up --build
+    ```
+    This command will build the Docker image for the services and start them. You will see the log output from both the actuator and sensor services in your terminal.
+
+2.  **Test with the Remote Client**: In a separate terminal, while the Docker services are running, you can use the remote example script to interact with them.
+    - **Configure Host**: Open `samples/remote_control_example.py` and ensure `PI_HOST` is set to `"localhost"`, since the services are now running on your local machine.
+    - **Run the Script**:
+      ```bash
+      # Make sure your virtual environment is activated and you've run 'pip install requests'
+      python samples/remote_control_example.py
+      ```
+
+3.  **Stopping the Services**: To stop the services, press `Ctrl-C` in the terminal where `docker-compose` is running. To remove the containers, you can run `docker-compose down`.
 
 ## Hardware
-- Raspberry Pi (Zero 2W or similar)
-- Digital Hall effect sensor(s)
-- Relay board (for actuator)
-- LED (for sensor lite)
-- LCD display (for actuator, optional)
+- Raspberry Pi (Zero 2W, 3B+, 4, etc.)
+- Digital Hall Effect Sensors
+- DC Motor Linear Actuator (for actuator)
+- 2-Channel Relay Board (for actuator)
+- INA219 Current Sensor (for actuator)
+- DFR0997 LCD Display (for actuator, optional)
+- Physical Push Buttons (for actuator, optional)
 
 ## Notes
-- GPIO pin numbers use BCM numbering.
-- The actuator and sensor-lite are designed to be modular and can be used together or separately.
-- For networked operation, ensure your Pi has a static IP and is accessible on your network.
-
----
-
-**Note:**
-- `sash-actuator` and `sash-sensor-lite` are designed for separate devices and are not intended to be used together on the same Raspberry Pi. Each device runs its own code and serves a distinct function:
-  - `sash-actuator` is for controlling the actuator to open and close the sash.
-  - `sash-sensor-lite` is for detecting if the sash is "open" (magnet present) and optionally reporting this state over the network.
+- GPIO pin numbers use the BCM numbering scheme.
+- The `actuator` and `sensor` components are generally designed for separate devices but can be run on the same Raspberry Pi if needed.

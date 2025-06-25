@@ -1,7 +1,13 @@
 # test_relay.py
 #!/usr/bin/env python3
 import time
-from relay import ActuatorRelay
+import sys
+import os
+
+# Add project root to Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.hood_sash_automation.actuator.relay import ActuatorRelay
 
 # Change these if you wired to different pins
 UP_PIN   = 17
