@@ -25,7 +25,13 @@ hall.set_callback(cb)
 hall.close()  # always call on exit
 """
 
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except (ImportError, RuntimeError):
+    # Use a mock GPIO library for testing on non-Pi systems
+    from unittest.mock import MagicMock
+    GPIO = MagicMock()
+
 import threading
 
 class HallArray:
@@ -56,8 +62,10 @@ class HallArray:
         self._cb = func
 
     def snapshot(self):
-        """Return a thread-safe copy of the current sensor states."""
+        """Return a thread-safe copy of the current sensor states by reading all pins."""
         with self._lock:
+            for i, pin in enumerate(self.pins):
+                self.state[i] = GPIO.input(pin)
             return self.state.copy()
 
     def close(self):

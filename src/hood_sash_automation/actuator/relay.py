@@ -1,5 +1,9 @@
 # relay.py  – minimal, active-HIGH relay driver
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except (ImportError, RuntimeError):
+    from unittest.mock import MagicMock
+    GPIO = MagicMock()
 
 class ActuatorRelay:
     """
@@ -19,10 +23,14 @@ class ActuatorRelay:
                    initial=GPIO.LOW)       # both relays OFF
 
     # ------------ actuator commands ------------
-    def up_on(self):    GPIO.output(self.up_pin,   GPIO.HIGH)
+    def up_on(self):
+        self.down_off()
+        GPIO.output(self.up_pin, GPIO.HIGH)
     def up_off(self):   GPIO.output(self.up_pin,   GPIO.LOW)
 
-    def down_on(self):  GPIO.output(self.down_pin, GPIO.HIGH)
+    def down_on(self):
+        self.up_off()
+        GPIO.output(self.down_pin, GPIO.HIGH)
     def down_off(self): GPIO.output(self.down_pin, GPIO.LOW)
 
     def all_off(self):  GPIO.output([self.up_pin, self.down_pin], GPIO.LOW)

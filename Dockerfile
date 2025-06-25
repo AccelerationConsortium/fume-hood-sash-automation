@@ -12,9 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install mock libraries needed for running on a non-Pi system
-# We are installing these separately because they should not be part of the main package dependencies.
-RUN pip install fake-rpigpio smbus2-mocks
+# Install the mock library for RPi.GPIO.
+# smbus2 is pure Python and can be installed directly.
+RUN pip install fake-rpigpio
 
 # Copy project files
 COPY pyproject.toml README.md ./

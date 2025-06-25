@@ -16,12 +16,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["RPi.GPIO", "Flask", "PyYAML"]
+dependencies = ["Flask", "PyYAML"]
 
 [project.optional-dependencies]
 sensor = []
 actuator = ["smbus2"]
 test = ["pytest", "pytest-mock"]
+rpi_hardware = ["RPi.GPIO"]
 
 [project.urls]
 "Homepage" = "https://github.com/your-username/fume-hood-sash-automation"

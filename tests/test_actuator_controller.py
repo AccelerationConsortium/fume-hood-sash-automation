@@ -13,60 +13,53 @@ SAMPLE_CONFIG = {
 @pytest.fixture
 def mock_hardware(mocker):
     """This fixture creates mocks for all hardware interaction classes."""
-    # Mock the classes themselves
-    mocker.patch('src.hood_sash_automation.actuator.controller.ActuatorRelay')
-    mocker.patch('src.hood_sash_automation.actuator.controller.CurrentSensor')
-    mocker.patch('src.hood_sash_automation.actuator.controller.HallArray')
-    mocker.patch('src.hood_sash_automation.actuator.controller.DFRobotLCD')
-    # We need to also mock the os.makedirs call during logging setup
+    mocker.patch('hood_sash_automation.actuator.controller.ActuatorRelay')
+    
+    mock_cs_class = mocker.patch('hood_sash_automation.actuator.controller.CurrentSensor')
+    # Configure the instance that will be created by the class mock
+    mock_cs_instance = mock_cs_class.return_value
+    mock_cs_instance.cal_value_read.return_value = 4096 # Return a simple int
+    mock_cs_instance.read_raw_shunt.return_value = 0 # Simulate normal current
+
+    mocker.patch('hood_sash_automation.actuator.controller.HallArray')
+    mocker.patch('hood_sash_automation.actuator.controller.DFRobotLCD')
     mocker.patch('os.makedirs')
+    mocker.patch('hood_sash_automation.actuator.controller.SashActuator._setup_logging')
+    mocker.patch('hood_sash_automation.actuator.controller.SashActuator._write_position_state')
 
 
 def test_sash_actuator_initialization(mock_hardware):
     """Test that the SashActuator initializes its components."""
-    from src.hood_sash_automation.actuator.controller import SashActuator, ActuatorRelay, HallArray
+    from hood_sash_automation.actuator.controller import SashActuator, ActuatorRelay, HallArray
     
-    # We have to disable the auto-homing for this simple test
     SashActuator.home_on_startup = lambda self: None
-
     actuator = SashActuator(SAMPLE_CONFIG)
 
-    # Assert that the hardware classes were instantiated
     HallArray.assert_called_once_with(SAMPLE_CONFIG['HALL_PINS'], bouncetime=SAMPLE_CONFIG['BOUNCE_MS'])
     ActuatorRelay.assert_called_once_with(SAMPLE_CONFIG['RELAY_EXT'], SAMPLE_CONFIG['RELAY_RET'])
     
-    # Assert that the hall callback was set
     mock_hall_instance = HallArray.return_value
     mock_hall_instance.set_callback.assert_called_once_with(actuator.hall_callback)
 
 
 def test_move_up_command(mock_hardware, mocker):
     """Test the logic for a simple 'move up' command."""
-    from src.hood_sash_automation.actuator.controller import SashActuator, ActuatorRelay, HallArray
+    from hood_sash_automation.actuator.controller import SashActuator, ActuatorRelay, HallArray
     
-    # Arrange
-    # Prevent the movement thread from starting and blocking the test
     mocker.patch('threading.Thread.start')
-
-    # Configure the mock HallArray to report being at position 1
     mock_hall_instance = HallArray.return_value
-    mock_hall_instance.snapshot.return_value = [0, 1, 1, 1, 1] # 0 means magnet present at index 0 (pos 1)
+    mock_hall_instance.snapshot.return_value = [0, 1, 1, 1, 1]
     
     SashActuator.home_on_startup = lambda self: None
     actuator = SashActuator(SAMPLE_CONFIG)
     
-    # Act
-    actuator.move_to_position_async(3) # Command a move from 1 to 3
+    actuator.move_to_position_async(3)
 
-    # Assert
-    # Check that the movement thread was created with the right target
     mock_relay_instance = ActuatorRelay.return_value
-    assert actuator.movement_thread.target == actuator.move_to_position
+    assert actuator.movement_thread._target == actuator.move_to_position
     
-    # To test the logic inside the thread, we can call the target method directly
     actuator.move_to_position(target_pos=3, mode='position')
     
-    # Assert that the 'up' relay was turned on
     mock_relay_instance.up_on.assert_called_once()
     mock_relay_instance.down_on.assert_not_called()
      

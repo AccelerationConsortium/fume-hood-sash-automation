@@ -42,6 +42,41 @@ This package is designed to be installed on a Raspberry Pi from a clone of this 
 
 All hardware and application settings are managed via YAML files in the `/config` directory. Before running the services, you should review and customize `config/actuator_config.yaml` and `config/sensor_config.yaml` to match your specific hardware setup (e.g., GPIO pin numbers, I2C addresses). The files are heavily commented to explain each setting.
 
+## Development Environment Setup
+
+### On a Raspberry Pi (for Deployment)
+These instructions are for setting up the application on the target hardware.
+
+1.  **Clone the repository and create the virtual environment**:
+    ```bash
+    git clone https://github.com/your-username/fume-hood-sash-automation.git
+    cd fume-hood-sash-automation
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+2.  **Install all dependencies**:
+    This command installs the base package along with the extras needed for the actuator, sensor, and the real Raspberry Pi hardware libraries.
+    ```bash
+    pip install --upgrade pip
+    pip install -e ".[actuator,sensor,rpi_hardware]"
+    ```
+
+### On macOS / Windows / Linux (for Local Development & Testing)
+These instructions use mock libraries to allow for development and testing on a machine without Raspberry Pi hardware.
+
+1.  **Clone the repository and create the virtual environment**:
+    (Same as above)
+
+2.  **Install dependencies with mock libraries**:
+    First, install the `fake-rpigpio` mock library.
+    ```bash
+    pip install fake-rpigpio
+    ```
+    Next, install the project with the testing and actuator extras. `smbus2` (required by actuator) is a pure Python library and will install correctly on your Mac.
+    ```bash
+    pip install -e ".[actuator,sensor,test]"
+    ```
+
 ## Deployment (Systemd Services)
 
 For the services to run automatically on boot, they should be managed by `systemd`.

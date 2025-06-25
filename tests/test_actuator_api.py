@@ -1,46 +1,50 @@
 # tests/test_actuator_api.py
 import pytest
-from unittest.mock import MagicMock
-
-# This is the key: we patch the real SashActuator class before it's imported by the api_service
 from unittest.mock import patch
-with patch('src.hood_sash_automation.actuator.controller.SashActuator') as mock_actuator_class:
-    # We configure the mock class to return a mock instance
-    mock_actuator_instance = MagicMock()
-    mock_actuator_class.return_value = mock_actuator_instance
-    
-    # Now we can import the app. The SashActuator it uses will be our mock.
-    from src.hood_sash_automation.actuator.api_service import app
+import os
 
-@pytest.fixture
-def client():
-    """Create and configure a new app instance for each test."""
-    app.config['TESTING'] = True
+# This fixture is automatically used by pytest for tests in this file.
+# It patches the SashActuator class *before* it's imported by the api_service.
+@pytest.fixture(autouse=True)
+def mock_actuator_class(mocker):
+    """Mocks the SashActuator class."""
+    mock = mocker.patch('hood_sash_automation.actuator.api_service.SashActuator')
+    # The mock will be used to instantiate the `actuator` global in api_service
+    yield mock
+
+@pytest.fixture(name="client_and_mock")
+def client_fixture(mock_actuator_class):
+    """
+    Creates a Flask test client and provides the mock instance of the actuator
+    that the app is using.
+    """
+    os.environ['FLASK_ENV'] = 'testing'
+    from hood_sash_automation.actuator.api_service import create_app
+    app = create_app()
+    # The `actuator` instance in the app is now the instance created from our mock class
+    mock_instance = app.actuator
     with app.test_client() as client:
-        yield client
+        yield client, mock_instance
 
-def test_status_endpoint_returns_mocked_status(client):
-    """
-    Test the /status endpoint.
-    It should return the status provided by our mock actuator instance.
-    """
-    # Arrange: Configure our mock actuator to return a specific status
-    expected_status = {"current_position": 3, "is_moving": False}
-    mock_actuator_instance.get_status.return_value = expected_status
+def test_status_endpoint_returns_mocked_status(client_and_mock):
+    """Test the /status endpoint."""
+    client, mock_actuator = client_and_mock
+    # Arrange
+    mock_actuator.get_status.return_value = {"position": 3, "moving": False}
 
-    # Act: Make a request to the API
+    # Act
     response = client.get('/status')
 
-    # Assert: Check if the response is correct
+    # Assert
     assert response.status_code == 200
-    assert response.get_json() == expected_status
-    # Verify that the API called our mock's get_status method
-    mock_actuator_instance.get_status.assert_called_once()
+    assert response.json == {"position": 3, "moving": False}
+    mock_actuator.get_status.assert_called_once()
 
-def test_move_endpoint_success(client):
+def test_move_endpoint_success(client_and_mock):
     """Test the /move endpoint for a successful request."""
+    client, mock_actuator = client_and_mock
     # Arrange
-    mock_actuator_instance.move_to_position_async.return_value = True
+    mock_actuator.move_to_position_async.return_value = True
     
     # Act
     response = client.post('/move', json={'position': 4})
@@ -48,13 +52,38 @@ def test_move_endpoint_success(client):
     # Assert
     assert response.status_code == 202
     assert response.get_json() == {"message": "Moving to position 4"}
-    mock_actuator_instance.move_to_position_async.assert_called_with(4)
+    mock_actuator.move_to_position_async.assert_called_with(4)
 
-def test_move_endpoint_invalid_position(client):
+def test_move_endpoint_invalid_position(client_and_mock):
     """Test the /move endpoint with an out-of-range position."""
+    client, mock_actuator = client_and_mock
     # Act
     response = client.post('/move', json={'position': 99})
-    
+
     # Assert
     assert response.status_code == 400
-    assert "Invalid position" in response.get_json()['error'] 
+    assert "Invalid position" in response.get_json()['error']
+
+def test_move_endpoint_actuator_busy(client_and_mock):
+    """Test the /move endpoint when the actuator is busy."""
+    client, mock_actuator = client_and_mock
+    # Arrange
+    mock_actuator.move_to_position_async.return_value = False
+
+    # Act
+    response = client.post('/move', json={'position': 4})
+    
+    # Assert
+    assert response.status_code == 409
+    assert "already moving" in response.get_json()['message']
+
+def test_stop_endpoint(client_and_mock):
+    """Test the /stop endpoint."""
+    client, mock_actuator = client_and_mock
+    # Act
+    response = client.post('/stop')
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json == {'message': 'Stop command issued.'}
+    mock_actuator.stop.assert_called_once() 

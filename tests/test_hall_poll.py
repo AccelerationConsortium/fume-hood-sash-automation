@@ -1,39 +1,44 @@
 #!/usr/bin/env python3
-import signal
+"""
+Tests for the HallArray event callback functionality.
+"""
 import sys
 import os
+import pytest
+from unittest.mock import MagicMock, patch
 
 # Add project root to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.hood_sash_automation.actuator.switches import HallArray  # your updated hall.py
 
-# BCM pins for your 5 Hall sensors
-HALL_PINS = [5, 6, 13, 19, 26]
-
-# Create the HallArray (sets up GPIO interrupts)
-hall = HallArray(HALL_PINS, bouncetime=10)
-
-def hall_event(channel, state, idx):
+@patch('hood_sash_automation.actuator.switches.GPIO')
+def test_hall_event_callback(mock_gpio):
     """
-    Fires on every edge.  state==0 → magnet present (ON),
-    state==1 → magnet absent (OFF).
+    Tests that the HallArray callback fires correctly when the underlying
+    GPIO event mechanism is triggered.
     """
-    if state == 0:
-        print(f"🎯 Position {idx+1} reached (GPIO{channel})")
-    else:
-        print(f"⇦ Position {idx+1} left     (GPIO{channel})")
+    from hood_sash_automation.actuator.switches import HallArray
 
-# Register the callback
-hall.set_callback(hall_event)
+    # Arrange
+    hall_pins = [5, 6, 13, 19, 26]
+    callback_func = MagicMock()  # A mock to act as our callback
 
-def clean_exit(signum, frame):
+    # Initialize the class we are testing
+    hall = HallArray(hall_pins, bouncetime=10)
+    hall.set_callback(callback_func)
+
+    # Configure the mock GPIO to report that the pin is now active (LOW)
+    mock_gpio.input.return_value = 0
+
+    # Act:
+    # Directly call the internal ISR method to simulate a hardware interrupt
+    # for GPIO pin 13.
+    hall._isr(channel=13)
+
+    # Assert:
+    # Check that our registered callback function was called with the
+    # arguments we expect for this event.
+    callback_func.assert_called_once_with(13, 0, 2)
+
+    # Teardown
     hall.close()
-    sys.exit(0)
-
-# Clean exit on Ctrl-C
-signal.signal(signal.SIGINT, clean_exit)
-signal.signal(signal.SIGTERM, clean_exit)
-
-print("Watching Hall sensors—move a magnet near one to see a message. Ctrl-C to exit.")
-signal.pause()  # wait here forever, callbacks do the work
