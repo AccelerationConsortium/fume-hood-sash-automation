@@ -1,0 +1,46 @@
+# docker-compose.dev.yml - Fast development testing with volume mounts
+version: '3.8'
+
+services:
+  # Development test runner - mounts source code for instant updates
+  dev-test:
+    image: fume-hood-test:latest  # Use pre-built image
+    container_name: fume_hood_dev_test
+    volumes:
+      # Mount source code - changes appear instantly
+      - ../..:/app:cached
+      - ../../test-results:/app/test-results
+    working_dir: /app
+    environment:
+      - FLASK_ENV=testing
+      - PYTHONPATH=/app/docker-test/mock_hardware:/app/src
+    # Keep container running for interactive testing
+    command: tail -f /dev/null
+    
+  # Development actuator service
+  dev-actuator:
+    image: fume-hood-test:latest
+    container_name: fume_hood_dev_actuator
+    volumes:
+      - ../..:/app:cached
+    working_dir: /app
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=testing
+      - PYTHONPATH=/app/docker-test/mock_hardware:/app/src
+    command: python -m hood_sash_automation.actuator.api_service
+    
+  # Development sensor service  
+  dev-sensor:
+    image: fume-hood-test:latest
+    container_name: fume_hood_dev_sensor
+    volumes:
+      - ../..:/app:cached
+    working_dir: /app
+    ports:
+      - "5005:5005"
+    environment:
+      - FLASK_ENV=testing
+      - PYTHONPATH=/app/docker-test/mock_hardware:/app/src
+    command: python -m hood_sash_automation.sensor.api_service 

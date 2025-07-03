@@ -155,42 +155,30 @@ The `samples/` directory contains an example script, `remote_control_example.py`
 The script will command the sash to its home position, then cycle through all other positions, and finally return home, printing status updates throughout the process.
 
 ## Testing
-This project uses `pytest` for testing. The tests are located in the `tests/` directory and use mocking to allow for testing without connected hardware.
 
-### Running Tests
-1.  **Install Test Dependencies**: First, install the testing extras.
-    ```bash
-    # Make sure your virtual environment is activated
-    pip install -e ".[test]"
-    ```
-2.  **Run Pytest**: Navigate to the project's root directory and run `pytest`.
-    ```bash
-    pytest
-    ```
-    Pytest will automatically discover and run the tests.
+This project uses a **two-stage testing approach**:
 
-## System Testing with Docker (on macOS/Windows/Linux)
-For testing the full application services without a Raspberry Pi, you can use Docker. This setup uses mock hardware libraries to simulate the Pi's environment.
+1. **Local Docker Testing**: Fast development testing with mocked hardware
+2. **Device Smoke Testing**: Quick validation on real Raspberry Pi hardware
 
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+### Quick Start
+```bash
+# Set up local Docker testing (one-time)
+./docker-test/scripts/setup_local_only.sh
 
-### Running the Services
-1.  **Build and Run with Docker Compose**: From the project's root directory, run:
-    ```bash
-    docker-compose up --build
-    ```
-    This command will build the Docker image for the services and start them. You will see the log output from both the actuator and sensor services in your terminal.
+# Quick integration test (recommended - 5-10s)
+./docker-test/scripts/test_local.sh integration
 
-2.  **Test with the Remote Client**: In a separate terminal, while the Docker services are running, you can use the remote example script to interact with them.
-    - **Configure Host**: Open `samples/remote_control_example.py` and ensure `PI_HOST` is set to `"localhost"`, since the services are now running on your local machine.
-    - **Run the Script**:
-      ```bash
-      # Make sure your virtual environment is activated and you've run 'pip install requests'
-      python samples/remote_control_example.py
-      ```
+# If integration passes, run full tests (30s)
+./docker-test/scripts/test_local.sh all
 
-3.  **Stopping the Services**: To stop the services, press `Ctrl-C` in the terminal where `docker-compose` is running. To remove the containers, you can run `docker-compose down`.
+# Deploy and smoke test on Pi
+git push && ssh pi@your-pi "cd fume-hood && git pull && python device-test/smoke_tests.py"
+```
+
+### Documentation
+- **[Docker Testing](docker-test/README.md)** - Local development testing
+- **[Device Testing](device-test/README.md)** - Real hardware smoke tests
 
 ## Hardware
 - Raspberry Pi (Zero 2W, 3B+, 4, etc.)

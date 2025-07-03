@@ -1,0 +1,95 @@
+# docker-compose.test.yml - Testing environment
+version: '3.8'
+
+services:
+  # Unit and integration tests
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: fume_hood_test_runner
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./src:/app/src:ro
+      - ./config:/app/config:ro
+      - ./test-results:/app/test-results
+    environment:
+      - FLASK_ENV=testing
+      - PYTHONPATH=/app/src
+    command: >
+      sh -c "
+        echo 'Running unit tests...' &&
+        pytest tests/test_hall.py tests/test_relay.py -v &&
+        echo 'Running integration tests...' &&
+        pytest tests/test_actuator_controller.py -v &&
+        echo 'Running API tests...' &&
+        pytest tests/test_actuator_api.py -v &&
+        echo 'Running coverage report...' &&
+        pytest tests/ --cov=src/hood_sash_automation --cov-report=html:/app/test-results/coverage --cov-report=term-missing
+      "
+
+  # Service testing - Actuator
+  actuator-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fume_hood_actuator_test
+    command: hood_sash_automation_actuator
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config:/app/config:ro
+    environment:
+      - FLASK_ENV=testing
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Service testing - Sensor
+  sensor-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fume_hood_sensor_test
+    command: hood_sash_automation_sensor
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./config:/app/config:ro
+    environment:
+      - FLASK_ENV=testing
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5005/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # End-to-end testing
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: fume_hood_e2e_tests
+    depends_on:
+      actuator-service:
+        condition: service_healthy
+      sensor-service:
+        condition: service_healthy
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./test-results:/app/test-results
+    environment:
+      - ACTUATOR_URL=http://actuator-service:5000
+      - SENSOR_URL=http://sensor-service:5005
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 5 &&
+        echo 'Running end-to-end tests...' &&
+        pytest tests/test_e2e_api.py -v --tb=short
+      "
+
+volumes:
+  test-results: 

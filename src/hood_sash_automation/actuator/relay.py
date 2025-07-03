@@ -1,9 +1,5 @@
 # relay.py  – minimal, active-HIGH relay driver
-try:
-    import RPi.GPIO as GPIO
-except (ImportError, RuntimeError):
-    from unittest.mock import MagicMock
-    GPIO = MagicMock()
+import RPi.GPIO as GPIO
 
 class ActuatorRelay:
     """

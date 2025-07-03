@@ -25,13 +25,7 @@ hall.set_callback(cb)
 hall.close()  # always call on exit
 """
 
-try:
-    import RPi.GPIO as GPIO
-except (ImportError, RuntimeError):
-    # Use a mock GPIO library for testing on non-Pi systems
-    from unittest.mock import MagicMock
-    GPIO = MagicMock()
-
+import RPi.GPIO as GPIO
 import threading
 
 class HallArray:

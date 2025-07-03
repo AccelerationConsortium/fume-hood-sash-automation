@@ -1,11 +1,6 @@
 # src/hood_sash_automation/actuator/buttons.py
 
-try:
-    import RPi.GPIO as GPIO
-except (ImportError, RuntimeError):
-    from unittest.mock import MagicMock
-    GPIO = MagicMock()
-
+import RPi.GPIO as GPIO
 import threading
 import time
 

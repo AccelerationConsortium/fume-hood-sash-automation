@@ -1,0 +1,41 @@
+# Dockerfile.test - Dedicated testing environment
+# Using official Raspberry Pi OS Docker image with Python 3.11 and Debian 12 (bookworm)
+# This matches Pi Zero 2W running Debian GNU/Linux 12 (bookworm) aarch64
+FROM dtcooper/raspberrypi-os:python3.11-bookworm
+
+WORKDIR /app
+
+# Install system dependencies for testing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install testing and mock hardware libraries
+# Note: fake-rpigpio not needed with official Raspberry Pi OS image
+RUN pip install \
+    pytest \
+    pytest-mock \
+    pytest-cov \
+    pytest-asyncio \
+    requests \
+    coverage
+
+# Copy mock hardware libraries and prioritize them in the Python path
+COPY docker-test/mock_hardware /app/mock_hardware
+
+# Copy project files
+COPY pyproject.toml README.md ./
+COPY src ./src
+COPY docker-test/tests ./tests
+COPY config ./config
+
+# Install the project with all dependencies
+RUN pip install -e .[actuator,sensor,test]
+
+# Set environment variables for testing
+ENV FLASK_ENV=testing
+ENV PYTHONPATH="/app/mock_hardware:/app/src"
+
+# Set the default command to show that the image works
+CMD ["python", "-c", "print('Fume Hood Automation Docker image is ready. Use docker compose to run services.')"] 

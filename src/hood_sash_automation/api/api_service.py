@@ -1,10 +1,10 @@
-# src/hood_sash_automation/actuator/api_service.py
+# src/hood_sash_automation/api/api_service.py
 import signal
 import yaml
 import os
 from flask import Flask, request, jsonify
-from .controller import SashActuator
-from .buttons import PhysicalButtons
+from ..actuator.controller import SashActuator
+from ..actuator.buttons import PhysicalButtons
 
 def create_app():
     """Create and configure an instance of the Flask application."""
