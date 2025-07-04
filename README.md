@@ -156,12 +156,15 @@ The script will command the sash to its home position, then cycle through all ot
 
 ## Testing
 
-This project uses a **two-stage testing approach**:
+This project uses a **comprehensive three-layer testing approach**:
 
 1. **Local Docker Testing**: Fast development testing with mocked hardware
-2. **Device Smoke Testing**: Quick validation on real Raspberry Pi hardware
+2. **Pi Zero 2W Testing**: Safe validation on real Pi hardware **without connected devices**
+3. **Hardware Integration**: Full testing with connected sensors and actuators
 
-### Quick Start
+### 🚀 Quick Start Testing
+
+#### **Development Testing** (on your laptop)
 ```bash
 # Set up local Docker testing (one-time)
 ./docker-test/scripts/setup_local_only.sh
@@ -171,14 +174,68 @@ This project uses a **two-stage testing approach**:
 
 # If integration passes, run full tests (30s)
 ./docker-test/scripts/test_local.sh all
-
-# Deploy and smoke test on Pi
-git push && ssh pi@your-pi "cd fume-hood && git pull && python device-test/smoke_tests.py"
 ```
 
-### Documentation
-- **[Docker Testing](docker-test/README.md)** - Local development testing
-- **[Device Testing](device-test/README.md)** - Real hardware smoke tests
+#### **Pi Zero 2W Testing** (safe, no hardware required)
+```bash
+# Deploy to Pi Zero 2W
+git push && ssh pi@your-pi-ip "cd fume-hood && git pull"
+
+# Basic validation (30s - covers 95% of Pi compatibility)
+ssh pi@your-pi-ip "cd fume-hood && python device-test/smoke_tests.py"
+
+# Optional: API service testing (60s - if using microservices)
+ssh pi@your-pi-ip "cd fume-hood && python device-test/api_service_test.py"
+```
+
+#### **Hardware Integration** (with connected devices)
+```bash
+# Only after Pi testing passes - start services with real hardware
+ssh pi@your-pi-ip "sudo systemctl start actuator sensor"
+```
+
+### 🎯 Testing Strategy
+
+| Test Layer | Where | Duration | Coverage | Safety |
+|------------|-------|----------|----------|---------|
+| **Docker Tests** | Local laptop | 5-30s | Business logic, mocked hardware | ✅ Completely safe |
+| **Pi Device Tests** | Pi Zero 2W | 30-60s | ARM compatibility, GPIO/I2C access | ✅ Safe without devices |
+| **Hardware Tests** | Pi + devices | Manual | Full integration | ⚠️ Requires connected hardware |
+
+### 🔧 Pi Zero 2W Testing Without Hardware
+
+**Perfect for development and validation** - test your code on real Pi hardware before connecting expensive devices:
+
+- **Code Validation**: Verify ARM compatibility and Pi environment
+- **Safety First**: No risk of hardware damage from code bugs
+- **Fast Feedback**: Quick validation before hardware deployment
+- **Environment Check**: Confirm GPIO/I2C access and dependencies
+
+```bash
+# SSH into your Pi Zero 2W
+ssh pi@your-pi-ip
+
+# Install and test (safe for disconnected hardware)
+cd fume-hood-sash-automation
+pip install -e .[actuator,sensor]
+python device-test/smoke_tests.py
+```
+
+Expected output with no devices connected:
+```
+🎉 All smoke tests PASSED! Device is ready.
+Result: 7/7 tests passed
+- ✅ GPIO access working
+- ✅ I2C access working  
+- ✅ All modules import correctly
+- ✅ Configuration files valid
+- ✅ Hardware classes initialize safely
+```
+
+### 📚 Testing Documentation
+- **[Docker Testing](docker-test/README.md)** - Local development testing with mocked hardware
+- **[Device Testing](device-test/README.md)** - Pi Zero 2W testing without connected devices
+- **[Pi Hardware Setup](device-test/README.md#pi-zero-2w-specific-setup)** - Interface configuration and optimization
 
 ## Hardware
 - Raspberry Pi (Zero 2W, 3B+, 4, etc.)
