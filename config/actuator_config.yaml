@@ -41,4 +41,5 @@ bounce_ms: 10
 # Path to store the last known position.
 position_state_file: "/tmp/position_state"
 # Directory for log files.
-log_dir: "/var/log/sash_actuator" 
+# For testing: use user-writable directory. For production: use "/var/log/sash_actuator"
+log_dir: "/tmp/sash_actuator_logs" 
