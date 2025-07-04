@@ -55,6 +55,47 @@ class ServiceTester:
                     proc.kill()
                     proc.wait()
     
+    def _get_python_executable(self):
+        """Get the Python executable that can import our package."""
+        logging.info(f"🔍 Detecting Python executable (current: {sys.executable})")
+        
+        # First try the current Python executable
+        try:
+            result = subprocess.run([
+                sys.executable, '-c', 'import hood_sash_automation; print("OK")'
+            ], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                logging.info(f"✅ Using current Python: {sys.executable}")
+                return sys.executable
+        except Exception as e:
+            logging.info(f"❌ Current Python failed: {e}")
+        
+        # Try python3 command
+        try:
+            result = subprocess.run([
+                'python3', '-c', 'import hood_sash_automation; print("OK")'
+            ], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                logging.info("✅ Using python3 command")
+                return 'python3'
+        except Exception as e:
+            logging.info(f"❌ python3 failed: {e}")
+        
+        # Try python command
+        try:
+            result = subprocess.run([
+                'python', '-c', 'import hood_sash_automation; print("OK")'
+            ], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                logging.info("✅ Using python command")
+                return 'python'
+        except Exception as e:
+            logging.info(f"❌ python failed: {e}")
+        
+        # If none work, fall back to sys.executable
+        logging.warning(f"⚠️ Could not find Python executable with hood_sash_automation package, using: {sys.executable}")
+        return sys.executable
+    
     def test_actuator_service(self):
         """Test actuator service startup and basic API response."""
         logging.info("🤖 Testing actuator service...")
@@ -64,8 +105,10 @@ class ServiceTester:
             env = os.environ.copy()
             env['FLASK_DEBUG'] = '1'
             
+            # Use the Python that can import our package
+            python_cmd = self._get_python_executable()
             proc = subprocess.Popen([
-                sys.executable, '-m', 'hood_sash_automation.api.api_service'
+                python_cmd, '-m', 'hood_sash_automation.api.api_service'
             ], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             self.processes['actuator'] = proc
@@ -123,8 +166,10 @@ class ServiceTester:
             env = os.environ.copy()
             env['FLASK_DEBUG'] = '1'
             
+            # Use the Python that can import our package
+            python_cmd = self._get_python_executable()
             proc = subprocess.Popen([
-                sys.executable, '-m', 'hood_sash_automation.sensor.api_service'
+                python_cmd, '-m', 'hood_sash_automation.sensor.api_service'
             ], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             self.processes['sensor'] = proc
