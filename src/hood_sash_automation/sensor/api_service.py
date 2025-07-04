@@ -39,9 +39,9 @@ def main():
     signal.signal(signal.SIGTERM, cleanup)
 
     sensor.start()
-    
+
     # Use a production-ready WSGI server like Gunicorn or uWSGI.
     app.run(host='0.0.0.0', port=5005, debug=False)
 
 if __name__ == '__main__':
-    main() 
+    main()

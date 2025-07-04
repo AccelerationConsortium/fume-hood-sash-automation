@@ -11,7 +11,7 @@ Fast local testing with mocked hardware for development.
 # Quick integration test (recommended)
 ./tests/docker-test/scripts/test_local.sh integration
 
-# If integration passes, run everything  
+# If integration passes, run everything
 ./tests/docker-test/scripts/test_local.sh all
 ```
 
@@ -44,4 +44,4 @@ Fast local testing with mocked hardware for development.
 open test-results/coverage/index.html
 ```
 
-**Integration tests are usually enough** - they catch most issues without the overhead of full testing. 
+**Integration tests are usually enough** - they catch most issues without the overhead of full testing.

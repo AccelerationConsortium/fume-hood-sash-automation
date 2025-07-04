@@ -138,7 +138,7 @@ class DFRobotLCD:
             (y >> 8) & 0xFF, y & 0xFF
         ]) + data
         self._cmd(0x20, params)  # 0x21 is CMD_OF_DRAW_GIF_EXTERNAL
-        
+
     def delete_gif(self, obj_id):
         self._cmd(0x1B, bytes([0x14, obj_id]))
 

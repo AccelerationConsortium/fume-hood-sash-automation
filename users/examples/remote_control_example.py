@@ -76,7 +76,7 @@ def run_sequence():
             monitor_movement()
         # Pause before moving to the next position
         time.sleep(2)
-    
+
     # 3. Return to home at the end
     if move_to_position(1):
         monitor_movement()
@@ -86,5 +86,5 @@ def run_sequence():
 if __name__ == "__main__":
     if not check_service_status():
         sys.exit(1)
-        
-    run_sequence() 
+
+    run_sequence()

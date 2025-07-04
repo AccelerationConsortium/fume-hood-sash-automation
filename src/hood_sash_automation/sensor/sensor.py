@@ -11,7 +11,7 @@ class SashSensor(threading.Thread):
         self.hall_pin = hall_pin
         self.led_pin = led_pin
         self.poll_interval = poll_interval
-        
+
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.hall_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(self.led_pin, GPIO.OUT)
@@ -31,7 +31,7 @@ class SashSensor(threading.Thread):
                     if self.on_state_change:
                         self.on_state_change(self._state)
             time.sleep(self.poll_interval)
-    
+
     def get_state_from_gpio(self):
         """Returns True if magnet present (sash up), False if not (sash down)"""
         return GPIO.input(self.hall_pin) == GPIO.LOW
@@ -41,4 +41,4 @@ class SashSensor(threading.Thread):
             return self._state
 
     def cleanup(self):
-        GPIO.cleanup([self.hall_pin, self.led_pin]) 
+        GPIO.cleanup([self.hall_pin, self.led_pin])

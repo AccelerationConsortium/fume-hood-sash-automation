@@ -70,7 +70,7 @@ Expected output with no devices connected:
 🎉 All smoke tests PASSED! Device is ready.
 Result: 7/7 tests passed
 - ✅ GPIO access working
-- ✅ I2C access working  
+- ✅ I2C access working
 - ✅ All modules import correctly
 - ✅ Configuration files valid
 - ✅ Hardware classes initialize safely
@@ -143,4 +143,4 @@ If you encounter issues:
 1. Check the specific README.md files in each test directory
 2. Review the main project documentation
 3. Verify hardware connections and configuration files
-4. Check system logs for detailed error messages 
+4. Check system logs for detailed error messages

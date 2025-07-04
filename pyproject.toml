@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hood-sash-automation"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
-    { name = "Your Name", email = "your.email@example.com" },
+    { name = "Yang Cao", email = "cyrilcaoyang@gmail.com" },
+    { name = "Kelvin Chow", email = "kelvinchow223@gmail.com" },
 ]
 description = "A package to control a fume hood sash actuator and sensor."
 readme = "README.md"

@@ -1,5 +1,5 @@
 # relay.py  – minimal, active-HIGH relay driver
-    import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 
 class ActuatorRelay:
     """

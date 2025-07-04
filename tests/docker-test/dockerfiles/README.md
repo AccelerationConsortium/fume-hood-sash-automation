@@ -22,7 +22,7 @@ test/docker/
 - **Base**: `dtcooper/raspberrypi-os:python3.9-bullseye`
 - **Features**: RPi.GPIO, Pi-specific packages, multi-arch support
 
-### **Test Images** 
+### **Test Images**
 - **`Dockerfile.test`**: Same base + testing dependencies
 - **Additional packages**: pytest, coverage, requests, etc.
 - **Purpose**: Unit, integration, and E2E testing
@@ -94,7 +94,7 @@ docker build -f test/docker/Dockerfile.test -t fume-hood-test .
 
 This allows Dockerfiles to copy from:
 - `src/` - Application source code
-- `tests/` - Test files  
+- `tests/` - Test files
 - `users/config/` - Configuration files
 - `pyproject.toml` - Dependencies
 
@@ -124,12 +124,12 @@ The `dtcooper/raspberrypi-os` images automatically select the appropriate archit
 ```yaml
 volumes:
   - /dev/gpiomem:/dev/gpiomem
-devices:  
+devices:
   - /dev/gpiomem:/dev/gpiomem
 privileged: true
 ```
 
-### **I2C Access** (Pi only)  
+### **I2C Access** (Pi only)
 ```yaml
 volumes:
   - /dev/i2c-1:/dev/i2c-1
@@ -187,4 +187,3 @@ The `.github/workflows/test.yml` automatically:
 - Performs security scanning
 - Uploads test artifacts
 
- 

@@ -14,7 +14,7 @@ SAMPLE_CONFIG = {
 def mock_hardware(mocker):
     """This fixture creates mocks for all hardware interaction classes."""
     mocker.patch('hood_sash_automation.actuator.controller.ActuatorRelay')
-    
+
     mock_cs_class = mocker.patch('hood_sash_automation.actuator.controller.CurrentSensor')
     # Configure the instance that will be created by the class mock
     mock_cs_instance = mock_cs_class.return_value
@@ -31,13 +31,13 @@ def mock_hardware(mocker):
 def test_sash_actuator_initialization(mock_hardware):
     """Test that the SashActuator initializes its components."""
     from hood_sash_automation.actuator.controller import SashActuator, ActuatorRelay, HallArray
-    
+
     SashActuator.home_on_startup = lambda self: None
     actuator = SashActuator(SAMPLE_CONFIG)
 
     HallArray.assert_called_once_with(SAMPLE_CONFIG['HALL_PINS'], bouncetime=SAMPLE_CONFIG['BOUNCE_MS'])
     ActuatorRelay.assert_called_once_with(SAMPLE_CONFIG['RELAY_EXT'], SAMPLE_CONFIG['RELAY_RET'])
-    
+
     mock_hall_instance = HallArray.return_value
     mock_hall_instance.set_callback.assert_called_once_with(actuator.hall_callback)
 
@@ -45,21 +45,20 @@ def test_sash_actuator_initialization(mock_hardware):
 def test_move_up_command(mock_hardware, mocker):
     """Test the logic for a simple 'move up' command."""
     from hood_sash_automation.actuator.controller import SashActuator, ActuatorRelay, HallArray
-    
+
     mocker.patch('threading.Thread.start')
     mock_hall_instance = HallArray.return_value
     mock_hall_instance.snapshot.return_value = [0, 1, 1, 1, 1]
-    
+
     SashActuator.home_on_startup = lambda self: None
     actuator = SashActuator(SAMPLE_CONFIG)
-    
+
     actuator.move_to_position_async(3)
 
     mock_relay_instance = ActuatorRelay.return_value
     assert actuator.movement_thread._target == actuator.move_to_position
-    
+
     actuator.move_to_position(target_pos=3, mode='position')
-    
+
     mock_relay_instance.up_on.assert_called_once()
     mock_relay_instance.down_on.assert_not_called()
-     

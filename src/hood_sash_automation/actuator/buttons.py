@@ -1,6 +1,6 @@
 # src/hood_sash_automation/actuator/buttons.py
 
-    import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import threading
 import time
 
@@ -12,7 +12,7 @@ class PhysicalButtons(threading.Thread):
         self.down_pin = down_pin
         self.stop_pin = stop_pin
         self.bounce_time = bounce_time
-        
+
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.up_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(self.down_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -32,7 +32,7 @@ class PhysicalButtons(threading.Thread):
             if self.stop_pin and GPIO.input(self.stop_pin) == GPIO.LOW:
                 self.handle_stop_press()
                 time.sleep(self.bounce_time / 1000)
-            
+
             time.sleep(0.1)
 
     def handle_up_press(self):
@@ -47,4 +47,4 @@ class PhysicalButtons(threading.Thread):
 
     def handle_stop_press(self):
         print("Stop button pressed")
-        self.actuator.stop() 
+        self.actuator.stop()

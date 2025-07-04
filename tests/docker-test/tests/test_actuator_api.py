@@ -45,10 +45,10 @@ def test_move_endpoint_success(client_and_mock):
     client, mock_actuator = client_and_mock
     # Arrange
     mock_actuator.move_to_position_async.return_value = True
-    
+
     # Act
     response = client.post('/move', json={'position': 4})
-    
+
     # Assert
     assert response.status_code == 202
     assert response.get_json() == {"message": "Moving to position 4"}
@@ -72,7 +72,7 @@ def test_move_endpoint_actuator_busy(client_and_mock):
 
     # Act
     response = client.post('/move', json={'position': 4})
-    
+
     # Assert
     assert response.status_code == 409
     assert "already moving" in response.get_json()['message']
@@ -86,4 +86,4 @@ def test_stop_endpoint(client_and_mock):
     # Assert
     assert response.status_code == 200
     assert response.json == {'message': 'Stop command issued.'}
-    mock_actuator.stop.assert_called_once() 
+    mock_actuator.stop.assert_called_once()

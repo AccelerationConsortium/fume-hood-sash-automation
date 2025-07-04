@@ -26,10 +26,10 @@ class SMBus:
         """Mocks writing a block of data to an I2C register."""
         if not isinstance(data, list):
             raise TypeError("Data must be a list of bytes.")
-        
+
         if i2c_addr not in _i2c_devices:
             _i2c_devices[i2c_addr] = {}
-            
+
         _i2c_devices[i2c_addr][register] = data
         logging.info(f"Wrote to addr=0x{i2c_addr:02X} reg=0x{register:02X} data={data}")
 
@@ -37,7 +37,7 @@ class SMBus:
         """Mocks reading a block of data from an I2C register."""
         device = _i2c_devices.get(i2c_addr, {})
         reg_data = device.get(register, [0] * length)
-        
+
         # Ensure the returned data is of the correct length
         response = (reg_data + [0] * length)[:length]
         logging.info(f"Read from addr=0x{i2c_addr:02X} reg=0x{register:02X} -> data={response}")
@@ -61,4 +61,4 @@ def get_i2c_register(address, register):
 
 def clear_i2c_devices():
     """A helper to reset the I2C mock state between tests."""
-    _i2c_devices.clear() 
+    _i2c_devices.clear()

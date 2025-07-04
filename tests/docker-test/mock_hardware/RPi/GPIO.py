@@ -102,4 +102,4 @@ def set_pin_value(channel, value):
 
 def get_pin_state(channel):
     """A helper to inspect a pin's state during tests."""
-    return _pins.get(channel) 
+    return _pins.get(channel)

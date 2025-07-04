@@ -95,20 +95,20 @@ def test_config_loading():
     logging.info("📋 Testing config loading...")
     try:
         import yaml
-        
+
         # Test actuator config
         with open("users/config/actuator_config.yaml", 'r') as f:
             actuator_config = yaml.safe_load(f)
         assert 'relay_ext_pin' in actuator_config
         assert 'hall_pins' in actuator_config
         assert 'i2c_bus' in actuator_config
-        
-        # Test sensor config  
+
+        # Test sensor config
         with open("users/config/sensor_config.yaml", 'r') as f:
             sensor_config = yaml.safe_load(f)
         assert 'hall_sensor_pin' in sensor_config
         assert 'led_pin' in sensor_config
-        
+
         logging.info("✅ Config loading working")
         return True
     except Exception as e:
@@ -122,18 +122,18 @@ def test_actuator_hardware_init():
         import yaml
         with open("users/config/actuator_config.yaml", 'r') as f:
             config = yaml.safe_load(f)
-        
+
         # Test relay initialization (but don't activate)
         from hood_sash_automation.actuator.relay import ActuatorRelay
         relay = ActuatorRelay(config['relay_ext_pin'], config['relay_ret_pin'])
         relay.all_off()  # Safe operation
-        
+
         # Test hall sensor initialization
         from hood_sash_automation.actuator.switches import HallArray
         hall = HallArray(config['hall_pins'], bouncetime=config['bounce_ms'])
         states = hall.snapshot()  # Safe read operation
         hall.close()
-        
+
         logging.info(f"✅ Actuator hardware init working (Hall states: {states})")
         return True
     except Exception as e:
@@ -147,11 +147,11 @@ def test_sensor_hardware_init():
         import yaml
         with open("users/config/sensor_config.yaml", 'r') as f:
             config = yaml.safe_load(f)
-        
+
         from hood_sash_automation.sensor.sensor import SashSensor
         # Use individual config parameters rather than whole config dict
         sensor = SashSensor(config['hall_sensor_pin'], config['led_pin'])
-        
+
         # Test safe read operation
         try:
             status = sensor.get_status()
@@ -160,7 +160,7 @@ def test_sensor_hardware_init():
         except Exception as read_error:
             logging.warning(f"⚠️ Sensor init OK but read failed: {read_error}")
             return True  # Init worked, read failure is OK for smoke test
-            
+
     except Exception as e:
         logging.error(f"❌ Sensor hardware init failed: {e}")
         return False
@@ -176,34 +176,34 @@ def run_all_smoke_tests():
         ("Actuator Hardware", test_actuator_hardware_init),
         ("Sensor Hardware", test_sensor_hardware_init),
     ]
-    
+
     results = []
     for test_name, test_func in tests:
         logging.info(f"\n{'='*50}")
         logging.info(f"Running: {test_name}")
         logging.info(f"{'='*50}")
-        
+
         try:
             result = test_func()
             results.append((test_name, result))
         except Exception as e:
             logging.error(f"❌ {test_name} crashed: {e}")
             results.append((test_name, False))
-    
+
     # Summary
     logging.info(f"\n{'='*50}")
     logging.info("SMOKE TEST SUMMARY")
     logging.info(f"{'='*50}")
-    
+
     passed = 0
     for test_name, result in results:
         status = "✅ PASS" if result else "❌ FAIL"
         logging.info(f"{status} {test_name}")
         if result:
             passed += 1
-    
+
     logging.info(f"\nResult: {passed}/{len(results)} tests passed")
-    
+
     if passed == len(results):
         logging.info("🎉 All smoke tests PASSED! Device is ready.")
         return True
@@ -231,7 +231,7 @@ def run_component_tests(component):
     else:
         logging.error(f"Unknown component: {component}")
         return False
-    
+
     results = []
     for test_name, test_func in tests:
         logging.info(f"Running: {test_name}")
@@ -241,24 +241,24 @@ def run_component_tests(component):
         except Exception as e:
             logging.error(f"❌ {test_name} crashed: {e}")
             results.append((test_name, False))
-    
+
     passed = sum(1 for _, result in results if result)
     logging.info(f"\n{component.title()} tests: {passed}/{len(results)} passed")
     return passed == len(results)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run smoke tests on real device")
-    parser.add_argument("--component", choices=["actuator", "sensor"], 
+    parser.add_argument("--component", choices=["actuator", "sensor"],
                        help="Test specific component only")
     args = parser.parse_args()
-    
+
     setup_logging()
     logging.info("🚀 Starting smoke tests on real device...")
     logging.info(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    
+
     if args.component:
         success = run_component_tests(args.component)
     else:
         success = run_all_smoke_tests()
-    
-    sys.exit(0 if success else 1) 
+
+    sys.exit(0 if success else 1)

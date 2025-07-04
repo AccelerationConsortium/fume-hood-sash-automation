@@ -45,7 +45,7 @@ def create_app():
         data = request.get_json()
         if not data or 'position' not in data:
             return jsonify({"error": "Missing 'position' in request body"}), 400
-        
+
         try:
             position = int(data['position'])
             if not 1 <= position <= 5:
@@ -99,5 +99,4 @@ def main():
     app.run(host='0.0.0.0', port=5000, debug=False)
 
 if __name__ == '__main__':
-    main() 
-    
+    main()

@@ -13,13 +13,13 @@ from .lcd_display_DFR0997 import DFRobotLCD
 class SashActuator:
     def __init__(self, config):
         self.config = config
-        
+
         # Setup logging
         self._setup_logging()
 
         # Initialize hardware components
         self.relay = ActuatorRelay(config['RELAY_EXT'], config['RELAY_RET'])
-        self.sensor = CurrentSensor(address=config['INA_ADDR'], busnum=config['I2C_BUS'], 
+        self.sensor = CurrentSensor(address=config['INA_ADDR'], busnum=config['I2C_BUS'],
                                     r_shunt=config['R_SHUNT'], i_max=config['I_MAX'])
         self.hall = HallArray(config['HALL_PINS'], bouncetime=config['BOUNCE_MS'])
         self.lcd = DFRobotLCD()
@@ -119,7 +119,7 @@ class SashActuator:
             logging.info(f"Moving DOWN from position {current_pos} to position {target_pos}")
             direction = "down"
             self.relay.down_on()
-        
+
         time.sleep(0.5) # delay to skip initial current spike
 
         start_time = time.time()
@@ -134,7 +134,7 @@ class SashActuator:
             if time.time() - start_time > self.config['MAX_MOVEMENT_TIME']:
                 logging.error("Movement timed out.")
                 break
-            
+
             if not self._check_movement_current(direction):
                 logging.warning("Collision detected based on current.")
                 break
@@ -160,7 +160,7 @@ class SashActuator:
     def home_on_startup(self, mode=None):
         if mode is None:
             mode = self.display_mode
-            
+
         logging.info("Homing actuator on startup...")
         self.move_to_position_async(1, mode) # Move to position 1 (home)
 
@@ -235,11 +235,11 @@ class SashActuator:
             "current_position": self.current_position,
             "is_moving": self.movement_thread.is_alive() if self.movement_thread else False,
         }
-    
+
     def _write_position_state(self):
         POSITION_STATE_FILE = self.config.get("POSITION_STATE_FILE", "/tmp/position_state")
         try:
             with open(POSITION_STATE_FILE, "w") as f:
                 f.write(str(self.current_position))
         except IOError as e:
-            logging.error(f"Failed to write position state to {POSITION_STATE_FILE}: {e}") 
+            logging.error(f"Failed to write position state to {POSITION_STATE_FILE}: {e}")

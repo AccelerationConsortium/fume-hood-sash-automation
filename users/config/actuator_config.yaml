@@ -42,4 +42,4 @@ bounce_ms: 10
 position_state_file: "/tmp/position_state"
 # Directory for log files.
 # For testing: use user-writable directory. For production: use "/var/log/sash_actuator"
-log_dir: "/tmp/sash_actuator_logs" 
+log_dir: "/tmp/sash_actuator_logs"

@@ -52,7 +52,7 @@ After installation, here's how to get the API service running:
    ```bash
    # Check if the service is running
    curl http://localhost:5000/status
-   
+
    # Move to position 2
    curl -X POST http://localhost:5000/move -H "Content-Type: application/json" -d '{"position": 2}'
    ```
@@ -76,10 +76,10 @@ These instructions are for setting up the application on the target hardware.
     # Create Projects directory if it doesn't exist
     mkdir -p ~/Projects
     cd ~/Projects
-    
+
     # Create virtual environment with system site packages
     python3 -m venv sash_env --system-site-packages
-    
+
     # Activate the environment
     source sash_env/bin/activate
     ```
@@ -88,10 +88,10 @@ These instructions are for setting up the application on the target hardware.
     ```bash
     # Edit your profile to auto-activate the environment
     nano ~/.profile
-    
+
     # Add this line to the end of ~/.profile:
     source ~/Projects/sash_env/bin/activate
-    
+
     # Apply the changes
     source ~/.profile
     ```
@@ -164,8 +164,8 @@ sudo systemctl start sensor.service
 #### Option 1: Direct Command (Development/Testing)
 ```bash
 # Make sure you're in the project directory and virtual environment is activated
-cd fume-hood-sash-automation
-source venv/bin/activate
+cd ~/Projects
+source sash_env/bin/activate
 
 # Start the actuator API service (runs on port 5000)
 hood_sash_automation_actuator
@@ -235,7 +235,7 @@ Example response:
 ```
 
 ### Managing the Services (Systemd)
-- **Check Status**: 
+- **Check Status**:
   ```bash
   sudo systemctl status actuator.service
   sudo systemctl status sensor.service

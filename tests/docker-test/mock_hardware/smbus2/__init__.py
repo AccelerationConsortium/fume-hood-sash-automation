@@ -1,4 +1,4 @@
-# This file makes the 'smbus2' directory a Python package. 
+# This file makes the 'smbus2' directory a Python package.
 # We need to avoid circular import, so we'll import directly from the standalone file
 import sys
 import os
@@ -13,4 +13,4 @@ smbus2_mock = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(smbus2_mock)
 
 # Export the SMBus class
-SMBus = smbus2_mock.SMBus 
+SMBus = smbus2_mock.SMBus

@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-This project provides a **microservice** for remote control of fume hood sash positioning via SSH. 
+This project provides a **microservice** for remote control of fume hood sash positioning via SSH.
 It exposes a REST API running locally on a Raspberry Pi that can be accessed securely through SSH tunneling from external applications.
 
 ## 🏗️ Architecture
@@ -88,7 +88,7 @@ Get complete system status.
 }
 ```
 
-#### `GET /position` 
+#### `GET /position`
 Get current position only.
 
 **Response:**
@@ -154,7 +154,7 @@ if sash.ping():
     print("✅ Fume hood microservice is online")
 else:
     print("❌ Cannot reach microservice")
-    
+
 # Get current status
 status = sash.get_status()
 print(f"Position: {status['current_position']}")
@@ -195,28 +195,28 @@ while sash.is_moving():
 class LabWorkflow:
     def __init__(self, fume_hood_ip):
         self.fume_hood = FumeHoodSashClient(fume_hood_ip)
-    
+
     def prepare_experiment(self):
         """Prepare fume hood for experiment setup"""
         try:
             # Open hood for equipment setup
             print("🔓 Opening fume hood for setup...")
             self.fume_hood.move_and_wait(position=5, timeout=30)
-            
+
             # User can now set up equipment
             input("Press Enter when setup is complete...")
-            
+
             # Close for safety during experiment
             print("🔒 Closing fume hood for experiment...")
             self.fume_hood.move_and_wait(position=1, timeout=30)
-            
+
             return {"status": "ready", "hood_position": 1}
-            
+
         except Exception as e:
             # Emergency stop on any error
             self.fume_hood.stop()
             raise Exception(f"Preparation failed: {e}")
-    
+
     def cleanup_experiment(self):
         """Open hood for cleanup"""
         print("🧹 Opening fume hood for cleanup...")
@@ -442,7 +442,7 @@ def get_hood_status():
 def move_hood():
     data = request.json
     position = data.get('position')
-    
+
     try:
         response = fume_hood.move_to_position(position)
         return jsonify(response)
@@ -460,41 +460,41 @@ class LabAutomation:
         self.fume_hood = FumeHoodSashClient('192.168.1.100')
         self.spectrometer = SpectrometerClient('192.168.1.101')
         self.robot_arm = RobotArmClient('192.168.1.102')
-    
+
     async def run_experiment_sequence(self):
         """Automated experiment workflow"""
         try:
             # 1. Prepare workspace
             await self.prepare_workspace()
-            
+
             # 2. Run experiment
             results = await self.execute_experiment()
-            
+
             # 3. Cleanup
             await self.cleanup_workspace()
-            
+
             return results
-            
+
         except Exception as e:
             # Emergency stop all equipment
             self.emergency_stop_all()
             raise
-    
+
     async def prepare_workspace(self):
         """Open hood, position robot, initialize instruments"""
         print("🔧 Preparing workspace...")
-        
+
         # Open fume hood for setup
         self.fume_hood.move_and_wait(position=5, timeout=30)
-        
+
         # Position robot arm
         await self.robot_arm.move_to_home()
-        
+
         # Initialize spectrometer
         await self.spectrometer.calibrate()
-        
+
         print("✅ Workspace ready")
-    
+
     def emergency_stop_all(self):
         """Stop all equipment immediately"""
         self.fume_hood.stop()
@@ -537,7 +537,7 @@ except Exception as e:
 ## 🔗 Related Documentation
 
 - **Hardware Setup**: See `README.md` for physical installation
-- **Docker Testing**: See `docker-test/README.md` for development environment  
+- **Docker Testing**: See `docker-test/README.md` for development environment
 - **Device Testing**: See `device-test/README.md` for on-device validation
 - **Configuration**: See `users/config/actuator_config.yaml` for all settings
 - **SSH Control Script**: See `src/hood_sash_automation/api/ssh_control.sh` for bash automation
@@ -545,4 +545,4 @@ except Exception as e:
 
 ---
 
-**🎯 Your fume hood is now ready to integrate as a microservice into any workflow automation system!** 
+**🎯 Your fume hood is now ready to integrate as a microservice into any workflow automation system!**

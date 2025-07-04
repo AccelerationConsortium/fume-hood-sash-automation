@@ -67,7 +67,7 @@ python tests/device-test/smoke_tests.py --component sensor
 The smoke tests perform **minimal, safe operations** that won't damage anything:
 
 - **GPIO Access**: Test basic pin control on GPIO 18 (safe pin)
-- **I2C Bus**: Just test bus creation, don't access specific devices  
+- **I2C Bus**: Just test bus creation, don't access specific devices
 - **Module Imports**: Verify all Python modules load correctly on Pi
 - **Config Loading**: Check YAML configuration files are valid
 - **Hardware Init**: Initialize hardware classes without activation
@@ -78,7 +78,7 @@ The smoke tests perform **minimal, safe operations** that won't damage anything:
 
 - Don't activate motors or relays with real loads
 - Don't try to move actual hardware
-- Don't perform complex integration tests  
+- Don't perform complex integration tests
 - Don't stress test or run continuously
 - Don't attempt to read from unconnected I2C devices
 
@@ -94,7 +94,7 @@ Running: Basic GPIO
 ✅ GPIO access working
 
 ==================================================
-Running: Basic I2C  
+Running: Basic I2C
 ==================================================
 ✅ I2C access working
 
@@ -105,7 +105,7 @@ Running: Actuator Imports
 
 ==================================================
 Running: Sensor Imports
-==================================================  
+==================================================
 ✅ Sensor imports working
 
 ==================================================
@@ -127,7 +127,7 @@ Running: Sensor Hardware
 SMOKE TEST SUMMARY
 ==================================================
 ✅ PASS Basic GPIO
-✅ PASS Basic I2C  
+✅ PASS Basic I2C
 ✅ PASS Actuator Imports
 ✅ PASS Sensor Imports
 ✅ PASS Config Loading
@@ -203,7 +203,7 @@ ssh pi@your-pi-ip "cd fume-hood && sudo systemctl start actuator sensor"
 
 This three-phase approach lets you:
 1. **Develop confidently** with full test coverage
-2. **Validate Pi compatibility** without hardware risk  
+2. **Validate Pi compatibility** without hardware risk
 3. **Deploy safely** knowing everything works
 
 The smoke tests typically complete in **under 30 seconds** on Pi Zero 2W and give you confidence that everything will work when you do connect the actual sensors, motors, and other components.
@@ -215,7 +215,7 @@ The smoke tests typically complete in **under 30 seconds** on Pi Zero 2W and giv
 - **I2C**: Test I2C bus access
 - **Imports**: Verify all modules load on Pi
 
-### Component Initialization  
+### Component Initialization
 - **Actuator**: Relay setup, Hall sensor reading
 - **Sensor**: Distance sensor initialization
 - **Config**: YAML configuration loading
@@ -258,7 +258,7 @@ sudo systemctl start actuator sensor
 ## 🎯 When to Run Device Tests
 
 - **After code changes**: Verify new code works on real hardware
-- **After Pi updates**: Ensure OS/library updates didn't break anything  
+- **After Pi updates**: Ensure OS/library updates didn't break anything
 - **Before production**: Final validation before deployment
 - **Troubleshooting**: Isolate hardware vs software issues
 
@@ -276,7 +276,7 @@ Running: Basic GPIO
 SMOKE TEST SUMMARY
 ==================================================
 ✅ PASS Basic GPIO
-✅ PASS Basic I2C  
+✅ PASS Basic I2C
 ✅ PASS Actuator Imports
 ✅ PASS Sensor Imports
 ✅ PASS Config Loading
@@ -302,7 +302,7 @@ Result: 5/7 tests passed
 **"No such file or directory: '/dev/i2c-1'"**
 - Enable I2C: `sudo raspi-config` → Interface Options → I2C → Enable
 
-**"Permission denied accessing GPIO"**  
+**"Permission denied accessing GPIO"**
 - Run as root: `sudo python device-test/smoke_tests.py`
 - Or add user to gpio group: `sudo usermod -a -G gpio $USER`
 
@@ -321,14 +321,14 @@ Result: 5/7 tests passed
 device-test/
 ├── smoke_tests.py      # Main smoke test script (required)
 ├── api_service_test.py # API service testing (optional)
-├── smoke_test.log      # Test execution log  
+├── smoke_test.log      # Test execution log
 ├── api_test.log        # API test execution log
 └── README.md          # This file
 
 # Future expansion:
 ├── integration/        # Real hardware integration tests
 ├── calibration/        # Sensor calibration tests
-├── stress/            # Long-running reliability tests  
+├── stress/            # Long-running reliability tests
 └── scripts/           # Device-specific utilities
 ```
 
@@ -356,10 +356,10 @@ This device testing complements your Docker-based testing:
 | Test Type | Where | What | Speed |
 |-----------|-------|------|-------|
 | **Unit/Integration** | Docker (local) | Business logic, mocked hardware | Fast (seconds) |
-| **Smoke Tests** | Pi (device) | Hardware access, basic init | Fast (30s) |  
+| **Smoke Tests** | Pi (device) | Hardware access, basic init | Fast (30s) |
 | **Full Validation** | Pi (manual) | Complete system testing | Slow (manual) |
 
-The combination gives you confidence that both your **code logic** (Docker) and **hardware integration** (Pi) work correctly! 
+The combination gives you confidence that both your **code logic** (Docker) and **hardware integration** (Pi) work correctly!
 
 ## 🔧 Do You Need Additional Test Scripts?
 
@@ -458,4 +458,4 @@ ssh pi@your-pi "cd fume-hood && python device-test/smoke_tests.py"
 ssh pi@your-pi "sudo systemctl start actuator sensor"
 ```
 
-**Bottom line:** Start with `smoke_tests.py` - it covers everything you need for basic Pi Zero 2W validation without connected devices. Add other tests only if you need them for specific scenarios. 
+**Bottom line:** Start with `smoke_tests.py` - it covers everything you need for basic Pi Zero 2W validation without connected devices. Add other tests only if you need them for specific scenarios.

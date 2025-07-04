@@ -8,7 +8,7 @@ def test_relay_cycles(mock_gpio):
     Tests that the relay class calls the correct GPIO functions in sequence.
     """
     from hood_sash_automation.actuator.relay import ActuatorRelay
-    
+
     # Arrange
     UP_PIN = 17
     DOWN_PIN = 27
