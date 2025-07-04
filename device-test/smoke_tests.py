@@ -99,13 +99,15 @@ def test_config_loading():
         # Test actuator config
         with open("config/actuator_config.yaml", 'r') as f:
             actuator_config = yaml.safe_load(f)
-        assert 'RELAY_EXT' in actuator_config
-        assert 'HALL_PINS' in actuator_config
+        assert 'relay_ext_pin' in actuator_config
+        assert 'hall_pins' in actuator_config
+        assert 'i2c_bus' in actuator_config
         
         # Test sensor config  
         with open("config/sensor_config.yaml", 'r') as f:
             sensor_config = yaml.safe_load(f)
-        assert 'I2C_BUS' in sensor_config
+        assert 'hall_sensor_pin' in sensor_config
+        assert 'led_pin' in sensor_config
         
         logging.info("✅ Config loading working")
         return True
@@ -123,12 +125,12 @@ def test_actuator_hardware_init():
         
         # Test relay initialization (but don't activate)
         from hood_sash_automation.actuator.relay import ActuatorRelay
-        relay = ActuatorRelay(config['RELAY_EXT'], config['RELAY_RET'])
+        relay = ActuatorRelay(config['relay_ext_pin'], config['relay_ret_pin'])
         relay.all_off()  # Safe operation
         
         # Test hall sensor initialization
         from hood_sash_automation.actuator.switches import HallArray
-        hall = HallArray(config['HALL_PINS'], bouncetime=config['BOUNCE_MS'])
+        hall = HallArray(config['hall_pins'], bouncetime=config['bounce_ms'])
         states = hall.snapshot()  # Safe read operation
         hall.close()
         
@@ -147,12 +149,13 @@ def test_sensor_hardware_init():
             config = yaml.safe_load(f)
         
         from hood_sash_automation.sensor.sensor import SashSensor
-        sensor = SashSensor(config)
+        # Use individual config parameters rather than whole config dict
+        sensor = SashSensor(config['hall_sensor_pin'], config['led_pin'])
         
         # Test safe read operation
         try:
-            distance = sensor.read_distance()
-            logging.info(f"✅ Sensor hardware init working (Distance: {distance})")
+            status = sensor.get_status()
+            logging.info(f"✅ Sensor hardware init working (Status: {status})")
             return True
         except Exception as read_error:
             logging.warning(f"⚠️ Sensor init OK but read failed: {read_error}")
