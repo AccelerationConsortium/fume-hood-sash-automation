@@ -14,7 +14,7 @@ services:
       - "5000:5000"
     volumes:
       # Mount the local config directory into the container.
-      # This allows you to change settings in config/actuator_config.yaml
+      # This allows you to change settings in users/config/actuator_config.yaml
       # and have them reflected in the container without rebuilding.
       - ./config:/app/config:ro
     restart: unless-stopped

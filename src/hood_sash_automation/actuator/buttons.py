@@ -1,6 +1,6 @@
 # src/hood_sash_automation/actuator/buttons.py
 
-import RPi.GPIO as GPIO
+    import RPi.GPIO as GPIO
 import threading
 import time
 

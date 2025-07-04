@@ -25,7 +25,7 @@ hall.set_callback(cb)
 hall.close()  # always call on exit
 """
 
-import RPi.GPIO as GPIO
+    import RPi.GPIO as GPIO
 import threading
 
 class HallArray:

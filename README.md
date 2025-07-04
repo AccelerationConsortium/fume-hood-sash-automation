@@ -37,24 +37,74 @@ This package is designed to be installed on a Raspberry Pi from a clone of this 
     pip install --upgrade pip
     pip install -e ".[actuator,sensor]"
     ```
-    
+
+## Quick Start
+
+After installation, here's how to get the API service running:
+
+1. **Start the API service:**
+   ```bash
+   # Make sure you're in the project directory with venv activated
+   hood_sash_automation_actuator
+   ```
+
+2. **Test the API** (in another terminal):
+   ```bash
+   # Check if the service is running
+   curl http://localhost:5000/status
+   
+   # Move to position 2
+   curl -X POST http://localhost:5000/move -H "Content-Type: application/json" -d '{"position": 2}'
+   ```
+
+3. **Use the remote control example:**
+   ```bash
+   python users/examples/remote_control_example.py
+   ```
+
 ## Configuration
 
-All hardware and application settings are managed via YAML files in the `/config` directory. Before running the services, you should review and customize `config/actuator_config.yaml` and `config/sensor_config.yaml` to match your specific hardware setup (e.g., GPIO pin numbers, I2C addresses). The files are heavily commented to explain each setting.
+All hardware and application settings are managed via YAML files in the `/users/config` directory. Before running the services, you should review and customize `users/config/actuator_config.yaml` and `users/config/sensor_config.yaml` to match your specific hardware setup (e.g., GPIO pin numbers, I2C addresses). The files are heavily commented to explain each setting.
 
 ## Development Environment Setup
 
 ### On a Raspberry Pi (for Deployment)
 These instructions are for setting up the application on the target hardware.
 
-1.  **Clone the repository and create the virtual environment**:
+1.  **Create the Python environment in ~/Projects**:
     ```bash
+    # Create Projects directory if it doesn't exist
+    mkdir -p ~/Projects
+    cd ~/Projects
+    
+    # Create virtual environment with system site packages
+    python3 -m venv sash_env --system-site-packages
+    
+    # Activate the environment
+    source sash_env/bin/activate
+    ```
+
+2.  **Set up auto-activation on SSH login**:
+    ```bash
+    # Edit your profile to auto-activate the environment
+    nano ~/.profile
+    
+    # Add this line to the end of ~/.profile:
+    source ~/Projects/sash_env/bin/activate
+    
+    # Apply the changes
+    source ~/.profile
+    ```
+
+3.  **Clone the repository**:
+    ```bash
+    # Make sure you're in the Projects directory with environment activated
+    cd ~/Projects
     git clone https://github.com/your-username/fume-hood-sash-automation.git
     cd fume-hood-sash-automation
-    python3 -m venv venv
-    source venv/bin/activate
     ```
-2.  **Install all dependencies**:
+
+4.  **Install all dependencies**:
     This command installs the base package along with the extras needed for the actuator, sensor, and the real Raspberry Pi hardware libraries.
     ```bash
     pip install --upgrade pip
@@ -82,7 +132,7 @@ These instructions use mock libraries to allow for development and testing on a 
 For the services to run automatically on boot, they should be managed by `systemd`.
 
 ### 1. Configure Service Files
-The service files in the `systemd/` directory are templates. You must edit them to set the correct `User` and ensure the `WorkingDirectory` points to the absolute path of your project directory on the Pi. The scripts will automatically find the config files in the `config/` subdirectory.
+The service files in the `systemd/` directory are templates. You must edit them to set the correct `User` and ensure the `WorkingDirectory` points to the absolute path of your project directory on the Pi. The scripts will automatically find the config files in the `users/config/` subdirectory.
 
 ### 2. Install the Services
 Copy the configured service files to the `systemd` directory and set the correct permissions:
@@ -107,7 +157,84 @@ sudo systemctl start sensor.service
 
 ## Usage
 
-### Managing the Services
+### Starting the API Service
+
+**🚨 IMPORTANT**: The API service must be running for remote control to work.
+
+#### Option 1: Direct Command (Development/Testing)
+```bash
+# Make sure you're in the project directory and virtual environment is activated
+cd fume-hood-sash-automation
+source venv/bin/activate
+
+# Start the actuator API service (runs on port 5000)
+hood_sash_automation_actuator
+
+# In another terminal, start the sensor API service (runs on port 5005)
+hood_sash_automation_sensor
+```
+
+#### Option 2: Using Systemd (Production)
+```bash
+# Start services
+sudo systemctl start actuator.service
+sudo systemctl start sensor.service
+
+# Check that services are running
+sudo systemctl status actuator.service
+sudo systemctl status sensor.service
+```
+
+### Using the API
+
+Once the API service is running, you can control it via HTTP requests:
+
+#### Actuator API (Port 5000)
+
+**Move to a position:**
+```bash
+curl -X POST http://raspberrypi.local:5000/move \
+  -H "Content-Type: application/json" \
+  -d '{"position": 3}'
+```
+
+**Stop movement:**
+```bash
+curl -X POST http://raspberrypi.local:5000/stop
+```
+
+**Get current status:**
+```bash
+curl http://raspberrypi.local:5000/status
+```
+Example response:
+```json
+{
+  "current_position": 3,
+  "is_moving": false,
+  "last_movement": "2024-01-15T10:30:00Z"
+}
+```
+
+**Get current position only:**
+```bash
+curl http://raspberrypi.local:5000/position
+```
+
+#### Sensor API (Port 5005)
+
+**Get sensor status:**
+```bash
+curl http://raspberrypi.local:5005/status
+```
+Example response:
+```json
+{
+  "magnet_present": true
+}
+```
+
+### Managing the Services (Systemd)
 - **Check Status**: 
   ```bash
   sudo systemctl status actuator.service
@@ -125,117 +252,66 @@ sudo systemctl start sensor.service
   sudo systemctl restart actuator.service
   ```
 
-### API Endpoints
-Once the services are running, you can control them via their HTTP APIs.
-
-#### Actuator API (Port 5000)
-- `POST /move`: Moves the sash to a specified position.
-  - **Body**: `{"position": <1-5>}`
-- `POST /stop`: Stops any current movement.
-- `GET /status`: Returns the current status (e.g., current position, if it's moving).
-- `GET /position`: Returns the current position.
-
-#### Sensor API (Port 5005)
-- `GET /status`: Returns the sensor's status.
-  - **Response**: `{"magnet_present": <true/false>}`
-
 ## Remote Control Example
-The `samples/` directory contains an example script, `remote_control_example.py`, that demonstrates how to control the sash from any computer on the same network.
+The `users/examples/` directory contains an example script, `remote_control_example.py`, that demonstrates how to control the sash from any computer on the same network.
+
+### Prerequisites
+**⚠️ The API service must be running on your Raspberry Pi first** (see [Starting the API Service](#starting-the-api-service) above).
 
 ### Usage
 1.  **Install Dependencies**: The script requires the `requests` library.
     ```bash
     pip install requests
     ```
-2.  **Configure Host**: Open `samples/remote_control_example.py` and change the `PI_HOST` variable to the IP address or hostname of your Raspberry Pi.
+2.  **Configure Host**: Open `users/examples/remote_control_example.py` and change the `PI_HOST` variable to the IP address or hostname of your Raspberry Pi.
 3.  **Run the Script**:
     ```bash
-    python samples/remote_control_example.py
+    python users/examples/remote_control_example.py
     ```
-The script will command the sash to its home position, then cycle through all other positions, and finally return home, printing status updates throughout the process.
+
+### What It Does
+The script will:
+- ✅ Check if the API service is running
+- 🏠 Move the sash to home position (1)
+- 🔄 Cycle through all positions (2, 3, 4, 5)
+- 🏠 Return to home position
+- 📊 Display real-time status updates
+
+### Example Output
+```
+Successfully connected to the actuator service at http://raspberrypi.local:5000
+
+>>> Sending command to move to position 1...
+API Response: Moving to position 1
+  [Polling] Current Position: 1, Is Moving: false
+Movement finished. Final position: 1
+
+>>> Sending command to move to position 2...
+API Response: Moving to position 2
+  [Polling] Current Position: 1, Is Moving: true
+  [Polling] Current Position: 2, Is Moving: false
+Movement finished. Final position: 2
+
+✅ Sequence complete.
+```
 
 ## Testing
 
-This project uses a **comprehensive three-layer testing approach**:
+This project uses a comprehensive three-layer testing approach for safe development and deployment.
 
-1. **Local Docker Testing**: Fast development testing with mocked hardware
-2. **Pi Zero 2W Testing**: Safe validation on real Pi hardware **without connected devices**
-3. **Hardware Integration**: Full testing with connected sensors and actuators
+**📋 See [tests/Test.md](tests/Test.md) for complete testing documentation.**
 
-### 🚀 Quick Start Testing
-
-#### **Development Testing** (on your laptop)
+### Quick Start
 ```bash
-# Set up local Docker testing (one-time)
-./docker-test/scripts/setup_local_only.sh
+# Development testing (local laptop)
+./tests/docker-test/scripts/test_local.sh integration
 
-# Quick integration test (recommended - 5-10s)
-./docker-test/scripts/test_local.sh integration
+# Pi device testing (safe without hardware)
+python tests/device-test/smoke_tests.py
 
-# If integration passes, run full tests (30s)
-./docker-test/scripts/test_local.sh all
+# Hardware integration (with connected devices)
+sudo systemctl start actuator sensor
 ```
-
-#### **Pi Zero 2W Testing** (safe, no hardware required)
-```bash
-# Deploy to Pi Zero 2W
-git push && ssh pi@your-pi-ip "cd fume-hood && git pull"
-
-# Basic validation (30s - covers 95% of Pi compatibility)
-ssh pi@your-pi-ip "cd fume-hood && python device-test/smoke_tests.py"
-
-# Optional: API service testing (60s - if using microservices)
-ssh pi@your-pi-ip "cd fume-hood && python device-test/api_service_test.py"
-```
-
-#### **Hardware Integration** (with connected devices)
-```bash
-# Only after Pi testing passes - start services with real hardware
-ssh pi@your-pi-ip "sudo systemctl start actuator sensor"
-```
-
-### 🎯 Testing Strategy
-
-| Test Layer | Where | Duration | Coverage | Safety |
-|------------|-------|----------|----------|---------|
-| **Docker Tests** | Local laptop | 5-30s | Business logic, mocked hardware | ✅ Completely safe |
-| **Pi Device Tests** | Pi Zero 2W | 30-60s | ARM compatibility, GPIO/I2C access | ✅ Safe without devices |
-| **Hardware Tests** | Pi + devices | Manual | Full integration | ⚠️ Requires connected hardware |
-
-### 🔧 Pi Zero 2W Testing Without Hardware
-
-**Perfect for development and validation** - test your code on real Pi hardware before connecting expensive devices:
-
-- **Code Validation**: Verify ARM compatibility and Pi environment
-- **Safety First**: No risk of hardware damage from code bugs
-- **Fast Feedback**: Quick validation before hardware deployment
-- **Environment Check**: Confirm GPIO/I2C access and dependencies
-
-```bash
-# SSH into your Pi Zero 2W
-ssh pi@your-pi-ip
-
-# Install and test (safe for disconnected hardware)
-cd fume-hood-sash-automation
-pip install -e .[actuator,sensor]
-python device-test/smoke_tests.py
-```
-
-Expected output with no devices connected:
-```
-🎉 All smoke tests PASSED! Device is ready.
-Result: 7/7 tests passed
-- ✅ GPIO access working
-- ✅ I2C access working  
-- ✅ All modules import correctly
-- ✅ Configuration files valid
-- ✅ Hardware classes initialize safely
-```
-
-### 📚 Testing Documentation
-- **[Docker Testing](docker-test/README.md)** - Local development testing with mocked hardware
-- **[Device Testing](device-test/README.md)** - Pi Zero 2W testing without connected devices
-- **[Pi Hardware Setup](device-test/README.md#pi-zero-2w-specific-setup)** - Interface configuration and optimization
 
 ## Hardware
 - Raspberry Pi (Zero 2W, 3B+, 4, etc.)

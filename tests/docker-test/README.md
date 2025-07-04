@@ -6,13 +6,13 @@ Fast local testing with mocked hardware for development.
 
 ```bash
 # One-time setup
-./docker-test/scripts/setup_local_only.sh
+./tests/docker-test/scripts/setup_local_only.sh
 
 # Quick integration test (recommended)
-./docker-test/scripts/test_local.sh integration
+./tests/docker-test/scripts/test_local.sh integration
 
 # If integration passes, run everything  
-./docker-test/scripts/test_local.sh all
+./tests/docker-test/scripts/test_local.sh all
 ```
 
 ## Test Types
@@ -27,20 +27,20 @@ Fast local testing with mocked hardware for development.
 
 ```bash
 # Daily development:
-./docker-test/scripts/test_local.sh integration    # Quick check
+./tests/docker-test/scripts/test_local.sh integration    # Quick check
 
 # Before pushing code:
-./docker-test/scripts/test_local.sh all           # Full validation
+./tests/docker-test/scripts/test_local.sh all           # Full validation
 ```
 
 ## Debugging
 
 ```bash
 # Interactive shell for troubleshooting
-./docker-test/scripts/test_local.sh shell
+./tests/docker-test/scripts/test_local.sh shell
 
 # View test coverage
-./docker-test/scripts/test_local.sh coverage
+./tests/docker-test/scripts/test_local.sh coverage
 open test-results/coverage/index.html
 ```
 

@@ -9,11 +9,11 @@ This directory contains tests that run on the actual Raspberry Pi with real hard
 
 ```bash
 # Run all smoke tests
-python device-test/smoke_tests.py
+python tests/device-test/smoke_tests.py
 
 # Test specific component
-python device-test/smoke_tests.py --component actuator
-python device-test/smoke_tests.py --component sensor
+python tests/device-test/smoke_tests.py --component actuator
+python tests/device-test/smoke_tests.py --component sensor
 ```
 
 ## 🧪 What Are Smoke Tests?
@@ -55,11 +55,11 @@ cd fume-hood-sash-automation
 pip install -e .[actuator,sensor]
 
 # Run all smoke tests (safe for disconnected hardware)
-python device-test/smoke_tests.py
+python tests/device-test/smoke_tests.py
 
 # Or test specific components
-python device-test/smoke_tests.py --component actuator
-python device-test/smoke_tests.py --component sensor
+python tests/device-test/smoke_tests.py --component actuator
+python tests/device-test/smoke_tests.py --component sensor
 ```
 
 ### ✅ Safe Operations (Work Without Connected Devices)
@@ -183,8 +183,8 @@ sudo usermod -a -G i2c $USER
 #### **Development Phase** (on your laptop):
 ```bash
 # Run comprehensive tests with mocked hardware
-./docker-test/scripts/setup_local_only.sh
-./docker-test/scripts/test_local.sh all
+./tests/docker-test/scripts/setup_local_only.sh
+./tests/docker-test/scripts/test_local.sh all
 ```
 
 #### **Pi Validation Phase** (Pi Zero 2W, no devices):
@@ -192,7 +192,7 @@ sudo usermod -a -G i2c $USER
 # Deploy to Pi and validate environment
 git push origin main
 ssh pi@your-pi-ip "cd fume-hood && git pull"
-ssh pi@your-pi-ip "cd fume-hood && python device-test/smoke_tests.py"
+ssh pi@your-pi-ip "cd fume-hood && python tests/device-test/smoke_tests.py"
 ```
 
 #### **Hardware Integration Phase** (with devices connected):
@@ -313,7 +313,7 @@ Result: 5/7 tests passed
 **Hardware not responding**
 - Check physical connections
 - Verify power supply
-- Review config/actuator_config.yaml and config/sensor_config.yaml
+- Review users/config/actuator_config.yaml and users/config/sensor_config.yaml
 
 ## 📁 File Structure
 

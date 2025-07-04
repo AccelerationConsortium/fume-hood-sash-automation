@@ -1,4 +1,4 @@
-# samples/remote_control_example.py
+# users/examples/remote_control_example.py
 
 import requests
 import time

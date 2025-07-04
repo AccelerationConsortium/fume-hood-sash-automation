@@ -22,13 +22,13 @@ RUN pip install \
     coverage
 
 # Copy mock hardware libraries and prioritize them in the Python path
-COPY docker-test/mock_hardware /app/mock_hardware
+COPY tests/docker-test/mock_hardware /app/mock_hardware
 
 # Copy project files
 COPY pyproject.toml README.md ./
 COPY src ./src
-COPY docker-test/tests ./tests
-COPY config ./config
+COPY tests/docker-test/tests ./tests
+COPY users/config ./config
 
 # Install the project with all dependencies
 RUN pip install -e .[actuator,sensor,test]

@@ -8,7 +8,7 @@ from .sensor import SashSensor
 
 def load_config():
     """Load configuration from YAML file."""
-    config_path = os.path.join(os.getcwd(), 'config', 'sensor_config.yaml')
+    config_path = os.path.join(os.getcwd(), 'users', 'config', 'sensor_config.yaml')
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 

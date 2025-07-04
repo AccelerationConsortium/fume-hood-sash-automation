@@ -33,7 +33,7 @@ It exposes a REST API running locally on a Raspberry Pi that can be accessed sec
    ```
 
 2. **Configure Hardware**
-   Edit `config/actuator_config.yaml`:
+   Edit `users/config/actuator_config.yaml`:
    ```yaml
    hall_pins: [5, 6, 13, 19, 26]     # Position sensors
    relay_ext_pin: 27                  # Extend relay
@@ -60,7 +60,7 @@ It exposes a REST API running locally on a Raspberry Pi that can be accessed sec
 
 1. **Copy Client Library**
    ```bash
-   cp samples/microservice_client.py your_ui_project/
+   cp users/examples/microservice_client.py your_ui_project/
    ```
 
 2. **Install Dependencies**
@@ -270,7 +270,7 @@ chmod +x src/hood_sash_automation/api/ssh_control.sh
 
 ## 🔧 Configuration
 
-### Hardware Configuration (`config/actuator_config.yaml`)
+### Hardware Configuration (`users/config/actuator_config.yaml`)
 
 ```yaml
 # GPIO Pins (BCM numbering)
@@ -414,10 +414,10 @@ Test the microservice client:
 
 ```bash
 # Basic connectivity test
-python samples/microservice_client.py 192.168.1.100
+python users/examples/microservice_client.py 192.168.1.100
 
 # Advanced testing with movement
-python samples/ssh_client_example.py 192.168.1.100 sequence
+python users/examples/ssh_client_example.py 192.168.1.100 sequence
 ```
 
 ## 📚 Integration Examples
@@ -539,9 +539,9 @@ except Exception as e:
 - **Hardware Setup**: See `README.md` for physical installation
 - **Docker Testing**: See `docker-test/README.md` for development environment  
 - **Device Testing**: See `device-test/README.md` for on-device validation
-- **Configuration**: See `config/actuator_config.yaml` for all settings
+- **Configuration**: See `users/config/actuator_config.yaml` for all settings
 - **SSH Control Script**: See `src/hood_sash_automation/api/ssh_control.sh` for bash automation
-- **Client Libraries**: See `samples/microservice_client.py` and `samples/ssh_client_example.py`
+- **Client Libraries**: See `users/examples/microservice_client.py` and `users/examples/ssh_client_example.py`
 
 ---
 

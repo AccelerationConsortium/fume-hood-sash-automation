@@ -6,7 +6,7 @@ control of the fume hood sash automation system.
 
 Contents:
 - api_service.py: Flask REST API service
-- microservice_setup.md: Complete setup and integration guide  
+- microservice_setup.md: Complete setup and integration guide
 - ssh_control.sh: Bash script for SSH-based control
 """
 

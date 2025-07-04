@@ -1,4 +1,4 @@
-# This file makes the 'smbus2' directory a Python package.
+# This file makes the 'smbus2' directory a Python package. 
 # We need to avoid circular import, so we'll import directly from the standalone file
 import sys
 import os

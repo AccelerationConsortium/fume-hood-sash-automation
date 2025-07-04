@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hood-sash-automation"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     { name = "Your Name", email = "your.email@example.com" },
 ]
@@ -43,7 +43,7 @@ hood_sash_automation_sensor = "hood_sash_automation.sensor.api_service:main"
 
 # Testing configuration
 [tool.pytest.ini_options]
-testpaths = ["docker-test/tests"]
+testpaths = ["tests/docker-test/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
