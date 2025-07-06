@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hood-sash-automation"
-version = "0.2.1"
+version = "0.3.0"
 authors = [
     { name = "Yang Cao", email = "cyrilcaoyang@gmail.com" },
     { name = "Kelvin Chow", email = "kelvinchow223@gmail.com" },
@@ -17,7 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["Flask", "PyYAML"]
+dependencies = ["Flask", "PyYAML", "Flask-SocketIO", "Flask-CORS"]
 
 [project.optional-dependencies]
 sensor = []
@@ -41,6 +41,7 @@ rpi_hardware = ["RPi.GPIO"]
 [project.scripts]
 hood_sash_automation_actuator = "hood_sash_automation.api.api_service:main"
 hood_sash_automation_sensor = "hood_sash_automation.sensor.api_service:main"
+hood_sash_automation_enhanced = "hood_sash_automation.api.enhanced_api_service:main"
 
 # Testing configuration
 [tool.pytest.ini_options]
