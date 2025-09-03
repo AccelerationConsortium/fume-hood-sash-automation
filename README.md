@@ -19,10 +19,9 @@ This package is designed to be installed on a Raspberry Pi from a clone of this 
 -   Ensure I2C is enabled on your Raspberry Pi (`sudo raspi-config`).
 
 ### Setup
-
 1.  Clone the repository to your Raspberry Pi:
     ```bash
-    git clone https://github.com/your-username/fume-hood-sash-automation.git
+    git clone https://github.com/AccelerationConsortium/fume-hood-sash-automation.git
     cd fume-hood-sash-automation
     ```
 
