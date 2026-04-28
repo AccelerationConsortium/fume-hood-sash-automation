@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hood-sash-automation"
-version = "0.5.0"
+version = "1.0.0"
 authors = [
     { name = "Yang Cao", email = "cyrilcaoyang@gmail.com" },
     { name = "Kelvin Chow", email = "kelvinchow223@gmail.com" },
