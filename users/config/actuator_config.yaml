@@ -36,7 +36,8 @@ current_threshold_down: -1300
 max_movement_time: 10.0 # Max time allowed for any single movement command
 position_timeout: 2.0   # Max time allowed between detecting consecutive hall sensors
 
-# Debounce time for hall sensors in milliseconds
+# Debounce time for hall sensors in milliseconds. The polled Hall sensors can
+# read noisy with long wiring, so keep this conservative unless hardware is stable.
 bounce_ms: 200
 
 # File Paths

@@ -5,6 +5,8 @@ import RPi.GPIO as GPIO
 
 
 class HallArray:
+    """Poll active-low Hall sensors and emit callbacks when their level changes."""
+
     def __init__(self, pins, bouncetime=5, poll_interval=0.02):
         self.pins = list(pins)
         self.state = [1] * len(self.pins)
@@ -24,15 +26,18 @@ class HallArray:
         self._thread.start()
 
     def set_callback(self, func):
+        """Register a callback(channel, state, idx) fired on state changes."""
         self._cb = func
 
     def snapshot(self):
+        """Return a thread-safe live read of all configured GPIO pins."""
         with self._lock:
             for i, pin in enumerate(self.pins):
                 self.state[i] = GPIO.input(pin)
             return self.state.copy()
 
     def close(self):
+        """Stop polling and release the configured GPIO pins."""
         self._stop.set()
         self._thread.join(timeout=1)
         GPIO.cleanup(self.pins)
@@ -65,6 +70,6 @@ class HallArray:
             callback(pin, level, idx)
 
     def _isr(self, channel):
-        """Compatibility hook for tests; hardware uses polling on newer Pi OS."""
+        """Compatibility hook for tests; production hardware uses polling."""
         idx = self.pins.index(channel)
         self._handle_level(channel, idx, GPIO.input(channel))

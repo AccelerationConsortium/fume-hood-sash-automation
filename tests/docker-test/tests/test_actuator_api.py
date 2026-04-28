@@ -1,6 +1,5 @@
 # tests/test_actuator_api.py
 import pytest
-from unittest.mock import patch
 import os
 
 # This fixture is automatically used by pytest for tests in this file.
@@ -8,7 +7,7 @@ import os
 @pytest.fixture(autouse=True)
 def mock_actuator_class(mocker):
     """Mocks the SashActuator class."""
-    mock = mocker.patch('hood_sash_automation.actuator.api_service.SashActuator')
+    mock = mocker.patch('hood_sash_automation.api.api_service.SashActuator')
     # The mock will be used to instantiate the `actuator` global in api_service
     yield mock
 
@@ -19,7 +18,7 @@ def client_fixture(mock_actuator_class):
     that the app is using.
     """
     os.environ['FLASK_ENV'] = 'testing'
-    from hood_sash_automation.actuator.api_service import create_app
+    from hood_sash_automation.api.api_service import create_app
     app = create_app()
     # The `actuator` instance in the app is now the instance created from our mock class
     mock_instance = app.actuator
@@ -38,6 +37,20 @@ def test_status_endpoint_returns_mocked_status(client_and_mock):
     # Assert
     assert response.status_code == 200
     assert response.json == {"position": 3, "moving": False}
+    mock_actuator.get_status.assert_called_once()
+
+def test_health_endpoint_returns_actuator_status(client_and_mock):
+    """Test the /health endpoint."""
+    client, mock_actuator = client_and_mock
+    mock_actuator.get_status.return_value = {"current_position": 3, "is_moving": False}
+
+    response = client.get('/health')
+
+    assert response.status_code == 200
+    assert response.json == {
+        "status": "healthy",
+        "actuator": {"current_position": 3, "is_moving": False}
+    }
     mock_actuator.get_status.assert_called_once()
 
 def test_move_endpoint_success(client_and_mock):

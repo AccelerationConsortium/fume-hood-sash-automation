@@ -3,17 +3,17 @@
 Tests for the HallArray class from switches.py.
 """
 
-import sys
 import os
-import pytest
+import sys
 from unittest.mock import patch
 
 # Add project root to Python path to allow importing from src
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
+@patch('hood_sash_automation.actuator.switches.threading.Thread')
 @patch('hood_sash_automation.actuator.switches.GPIO')
-def test_hall_array_snapshot(mock_gpio):
+def test_hall_array_snapshot(mock_gpio, mock_thread):
     """
     Tests that the HallArray.snapshot() method correctly calls the underlying
     GPIO.input() for each pin.
@@ -39,4 +39,5 @@ def test_hall_array_snapshot(mock_gpio):
 
     # Assert
     assert states == [1, 1, 0, 1, 1]
+    mock_thread.return_value.start.assert_called_once()
     mock_gpio.cleanup.assert_called_once_with(hall_pins)

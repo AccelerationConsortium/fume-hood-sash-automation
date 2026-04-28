@@ -61,13 +61,16 @@ class SashActuator:
                 self.display_image(self.current_position, self.display_mode)
         else:
             logging.info(f"Left position {idx + 1} (Hall sensor {idx})")
+            self.current_position = self.get_current_position()
 
     def get_current_position(self):
         states = self.hall.snapshot()
         for idx, state in enumerate(states):
             if state == 0:
-                return idx + 1
-        return None
+                self.current_position = idx + 1
+                return self.current_position
+        self.current_position = None
+        return self.current_position
 
     def move_to_position_async(self, target_pos, mode=None):
         if self.movement_thread and self.movement_thread.is_alive():
@@ -233,7 +236,7 @@ class SashActuator:
 
     def get_status(self):
         return {
-            "current_position": self.current_position,
+            "current_position": self.get_current_position(),
             "is_moving": self.movement_thread.is_alive() if self.movement_thread else False,
         }
 

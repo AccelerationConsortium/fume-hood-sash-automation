@@ -68,6 +68,13 @@ def create_app():
     def status():
         return jsonify(app.actuator.get_status())
 
+    @app.route('/health', methods=['GET'])
+    def health():
+        return jsonify({
+            "status": "healthy",
+            "actuator": app.actuator.get_status()
+        })
+
     @app.route('/position', methods=['GET'])
     def get_position():
         position = app.actuator.get_current_position()

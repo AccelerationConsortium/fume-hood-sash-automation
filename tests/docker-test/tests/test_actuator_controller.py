@@ -62,3 +62,20 @@ def test_move_up_command(mock_hardware, mocker):
 
     mock_relay_instance.up_on.assert_called_once()
     mock_relay_instance.down_on.assert_not_called()
+
+
+def test_status_uses_live_hall_snapshot(mock_hardware):
+    """Test that status clears stale position when no Hall sensor is active."""
+    from hood_sash_automation.actuator.controller import SashActuator, HallArray
+
+    mock_hall_instance = HallArray.return_value
+    mock_hall_instance.snapshot.side_effect = [
+        [1, 1, 1, 1, 0],  # Initial position during construction.
+        [1, 1, 1, 1, 1],  # Live status read after leaving the sensor.
+    ]
+
+    actuator = SashActuator(SAMPLE_CONFIG)
+    status = actuator.get_status()
+
+    assert status == {"current_position": None, "is_moving": False}
+    assert actuator.current_position is None

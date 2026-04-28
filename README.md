@@ -118,6 +118,15 @@ These instructions are for setting up the application on the target hardware.
     pip install -e ".[actuator,sensor]"
     ```
 
+6.  **Confirm safe startup settings**:
+    Keep startup homing disabled while commissioning. If `home_on_startup` is set
+    to `true`, the actuator may move immediately when the API service starts or
+    the Pi reboots.
+    ```yaml
+    home_on_startup: false
+    bounce_ms: 200
+    ```
+
 ### On macOS / Windows / Linux (for Local Development & Testing)
 These instructions use mock libraries to allow for development and testing on a machine without Raspberry Pi hardware.
 
@@ -160,6 +169,19 @@ You can now either reboot your Pi or start the services manually:
 ```bash
 sudo systemctl start actuator.service
 sudo systemctl start sensor.service
+```
+
+Verify the actuator service is enabled, running, and serving the API:
+```bash
+systemctl is-enabled actuator.service
+sudo systemctl status actuator.service
+curl http://localhost:5000/status
+```
+
+After a reboot, run the same checks. From a Tailscale-connected machine, use the
+Pi's Tailscale IP:
+```bash
+curl http://<pi-tailscale-ip>:5000/status
 ```
 
 ## Usage
