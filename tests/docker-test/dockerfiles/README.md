@@ -6,13 +6,13 @@ This directory contains all Docker-related files for testing the Fume Hood Sash 
 
 ```
 test/docker/
-├── README.md                          # This file
-├── Dockerfile                         # Production Docker image (Pi-optimized)
-├── Dockerfile.test                    # Testing Docker image with test dependencies
-├── docker-compose.yml                 # Original production compose file
-├── docker-compose.rpi.yml            # Pi Zero 2W optimized production
-├── docker-compose.test.yml           # Development/x86 testing
-└── docker-compose.test.rpi.yml       # Pi Zero 2W optimized testing
+|-- README.md                          # This file
+|-- Dockerfile                         # Production Docker image (Pi-optimized)
+|-- Dockerfile.test                    # Testing Docker image with test dependencies
+|-- docker-compose.yml                 # Original production compose file
+|-- docker-compose.rpi.yml             # Pi Zero 2W optimized production
+|-- docker-compose.test.yml            # Development/x86 testing
+`-- docker-compose.test.rpi.yml        # Pi Zero 2W optimized testing
 ```
 
 ## Docker Images

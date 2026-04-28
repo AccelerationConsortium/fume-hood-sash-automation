@@ -1,29 +1,36 @@
 #!/usr/bin/env python3
 """
-API Service Test for Pi Zero 2W
-===============================
+API Service Tests for Raspberry Pi deployment.
 
-Optional test script to validate that Flask services can start and respond
-on Pi Zero 2W without connected hardware devices.
+By default this script validates already-running API services, which is the
+normal systemd deployment flow. Use --start-processes only when you intentionally
+want this script to start temporary Flask processes itself.
 
 Usage:
-    python device-test/api_service_test.py
-    python device-test/api_service_test.py --service actuator
-    python device-test/api_service_test.py --service sensor
+    python tests/device-test/api_service_test.py
+    python tests/device-test/api_service_test.py --service actuator
+    python tests/device-test/api_service_test.py --service sensor
+    python tests/device-test/api_service_test.py --start-processes
 """
 
 import argparse
+import json
+import logging
+import os
+import signal
+import subprocess
 import sys
 import time
-import logging
-import requests
-import subprocess
-import signal
-import os
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+ROOT_DIR = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT_DIR / "src"))
+
+ACTUATOR_URL = os.getenv("ACTUATOR_URL", "http://localhost:5000")
+SENSOR_URL = os.getenv("SENSOR_URL", "http://localhost:5005")
+
 
 def setup_logging():
     """Set up logging for API service tests."""
@@ -32,22 +39,23 @@ def setup_logging():
         format="%(asctime)s [API-TEST] %(levelname)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler("device-test/api_test.log")
-        ]
+            logging.FileHandler(ROOT_DIR / "tests" / "device-test" / "api_test.log"),
+        ],
     )
 
-class ServiceTester:
-    """Test API services on Pi Zero 2W."""
 
-    def __init__(self):
+class ServiceTester:
+    """Test deployed or temporary API services on a Raspberry Pi."""
+
+    def __init__(self, start_processes=False):
+        self.start_processes = start_processes
         self.processes = {}
-        self.test_results = []
 
     def cleanup(self):
-        """Clean up any running test processes."""
+        """Clean up any temporary service processes started by this script."""
         for name, proc in self.processes.items():
             if proc and proc.poll() is None:
-                logging.info(f"Stopping {name} service...")
+                logging.info(f"Stopping temporary {name} service...")
                 proc.terminate()
                 try:
                     proc.wait(timeout=5)
@@ -56,274 +64,168 @@ class ServiceTester:
                     proc.wait()
 
     def _get_python_executable(self):
-        """Get the Python executable that can import our package."""
-        logging.info(f"🔍 Detecting Python executable (current: {sys.executable})")
+        """Get the Python executable that can import this package."""
+        candidates = [sys.executable, "python3", "python"]
+        for candidate in candidates:
+            try:
+                result = subprocess.run(
+                    [candidate, "-c", "import hood_sash_automation; print('OK')"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    cwd=ROOT_DIR,
+                )
+                if result.returncode == 0:
+                    logging.info(f"Using Python executable: {candidate}")
+                    return candidate
+            except Exception as exc:
+                logging.debug(f"Python candidate failed ({candidate}): {exc}")
 
-        # First try the current Python executable
-        try:
-            result = subprocess.run([
-                sys.executable, '-c', 'import hood_sash_automation; print("OK")'
-            ], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                logging.info(f"✅ Using current Python: {sys.executable}")
-                return sys.executable
-        except Exception as e:
-            logging.info(f"❌ Current Python failed: {e}")
-
-        # Try python3 command
-        try:
-            result = subprocess.run([
-                'python3', '-c', 'import hood_sash_automation; print("OK")'
-            ], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                logging.info("✅ Using python3 command")
-                return 'python3'
-        except Exception as e:
-            logging.info(f"❌ python3 failed: {e}")
-
-        # Try python command
-        try:
-            result = subprocess.run([
-                'python', '-c', 'import hood_sash_automation; print("OK")'
-            ], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                logging.info("✅ Using python command")
-                return 'python'
-        except Exception as e:
-            logging.info(f"❌ python failed: {e}")
-
-        # If none work, fall back to sys.executable
-        logging.warning(f"⚠️ Could not find Python executable with hood_sash_automation package, using: {sys.executable}")
+        logging.warning(f"Falling back to current Python: {sys.executable}")
         return sys.executable
 
+    def _start_service_process(self, name, module):
+        """Start a temporary service process for explicit --start-processes mode."""
+        python_cmd = self._get_python_executable()
+        env = os.environ.copy()
+        env["FLASK_ENV"] = "testing"
+        proc = subprocess.Popen(
+            [python_cmd, "-m", module],
+            cwd=ROOT_DIR,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.processes[name] = proc
+        time.sleep(3)
+
+        if proc.poll() is not None:
+            stdout, stderr = proc.communicate()
+            logging.error(f"{name} service failed to start")
+            logging.error(f"stdout: {stdout.decode()}")
+            logging.error(f"stderr: {stderr.decode()}")
+            return False
+        return True
+
+    def _request_json(self, url, endpoint, timeout=5):
+        with urlopen(f"{url}{endpoint}", timeout=timeout) as response:
+            return json.loads(response.read().decode())
+
     def test_actuator_service(self):
-        """Test actuator service startup and basic API response."""
-        logging.info("🤖 Testing actuator service...")
+        """Test actuator API health, status, and position endpoints."""
+        logging.info("Testing actuator API...")
 
-        try:
-            # Start actuator service in test mode
-            env = os.environ.copy()
-            env['FLASK_DEBUG'] = '1'
-
-            # Use the Python that can import our package
-            python_cmd = self._get_python_executable()
-            proc = subprocess.Popen([
-                python_cmd, '-m', 'hood_sash_automation.api.api_service'
-            ], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            self.processes['actuator'] = proc
-
-            # Wait for service to start
-            time.sleep(3)
-
-            # Check if process is still running
-            if proc.poll() is not None:
-                stdout, stderr = proc.communicate()
-                stderr_str = stderr.decode()
-
-                # Check if failure is due to missing hardware (expected)
-                if "Input/output error" in stderr_str or "OSError" in stderr_str:
-                    logging.info("⚠️ Actuator service failed to start due to missing hardware (expected)")
-                    logging.info("✅ This confirms I2C access works and code tries to initialize hardware")
-                    return True
-                else:
-                    logging.error(f"❌ Actuator service failed to start (unexpected error)")
-                    logging.error(f"stdout: {stdout.decode()}")
-                    logging.error(f"stderr: {stderr_str}")
-                    return False
-
-            # Test API endpoint
-            try:
-                response = requests.get('http://localhost:5000/status', timeout=5)
-                if response.status_code == 200:
-                    data = response.json()
-                    logging.info(f"✅ Actuator service responding (status: {data.get('status', 'unknown')})")
-                    return True
-                else:
-                    logging.error(f"❌ Actuator service returned status code: {response.status_code}")
-                    return False
-            except requests.exceptions.RequestException as e:
-                logging.error(f"❌ Failed to connect to actuator service: {e}")
+        if self.start_processes:
+            if not self._start_service_process(
+                "actuator", "hood_sash_automation.api.api_service"
+            ):
                 return False
 
-        except Exception as e:
-            logging.error(f"❌ Actuator service test failed: {e}")
+        try:
+            health = self._request_json(ACTUATOR_URL, "/health")
+            status = self._request_json(ACTUATOR_URL, "/status")
+            position = self._request_json(ACTUATOR_URL, "/position")
+        except (HTTPError, URLError, TimeoutError) as exc:
+            logging.error(f"Actuator API request failed: {exc}")
             return False
-        finally:
-            # Stop the service
-            if 'actuator' in self.processes:
-                proc = self.processes['actuator']
-                if proc and proc.poll() is None:
-                    proc.terminate()
-                    proc.wait()
+
+        if health.get("status") != "healthy":
+            logging.error(f"Unexpected actuator health response: {health}")
+            return False
+        if "current_position" not in status or "is_moving" not in status:
+            logging.error(f"Unexpected actuator status response: {status}")
+            return False
+        if "position" not in position:
+            logging.error(f"Unexpected actuator position response: {position}")
+            return False
+
+        logging.info(f"Actuator API OK: {status}")
+        return True
 
     def test_sensor_service(self):
-        """Test sensor service startup and basic API response."""
-        logging.info("📊 Testing sensor service...")
+        """Test sensor API status endpoint."""
+        logging.info("Testing sensor API...")
 
-        try:
-            # Start sensor service in test mode
-            env = os.environ.copy()
-            env['FLASK_DEBUG'] = '1'
-
-            # Use the Python that can import our package
-            python_cmd = self._get_python_executable()
-            proc = subprocess.Popen([
-                python_cmd, '-m', 'hood_sash_automation.sensor.api_service'
-            ], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            self.processes['sensor'] = proc
-
-            # Wait for service to start
-            time.sleep(3)
-
-            # Check if process is still running
-            if proc.poll() is not None:
-                stdout, stderr = proc.communicate()
-                logging.error(f"❌ Sensor service failed to start")
-                logging.error(f"stdout: {stdout.decode()}")
-                logging.error(f"stderr: {stderr.decode()}")
+        if self.start_processes:
+            if not self._start_service_process(
+                "sensor", "hood_sash_automation.sensor.api_service"
+            ):
                 return False
 
-            # Test API endpoint
-            try:
-                response = requests.get('http://localhost:5005/status', timeout=5)
-                if response.status_code == 200:
-                    data = response.json()
-                    logging.info(f"✅ Sensor service responding (status: {data.get('status', 'unknown')})")
-                    return True
-                else:
-                    logging.error(f"❌ Sensor service returned status code: {response.status_code}")
-                    return False
-            except requests.exceptions.RequestException as e:
-                logging.error(f"❌ Failed to connect to sensor service: {e}")
-                return False
-
-        except Exception as e:
-            logging.error(f"❌ Sensor service test failed: {e}")
-            return False
-        finally:
-            # Stop the service
-            if 'sensor' in self.processes:
-                proc = self.processes['sensor']
-                if proc and proc.poll() is None:
-                    proc.terminate()
-                    proc.wait()
-
-    def test_port_binding(self):
-        """Test that required ports can be bound."""
-        logging.info("🔌 Testing port binding...")
-
-        import socket
-
-        ports_to_test = [5000, 5005]
-        all_available = True
-
-        for port in ports_to_test:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind(('localhost', port))
-                sock.close()
-                logging.info(f"✅ Port {port} available")
-            except socket.error as e:
-                logging.error(f"❌ Port {port} not available: {e}")
-                all_available = False
-
-        return all_available
-
-    def test_memory_usage(self):
-        """Test basic memory usage on Pi Zero 2W."""
-        logging.info("💾 Testing memory usage...")
-
         try:
-            # Check available memory
-            with open('/proc/meminfo', 'r') as f:
-                for line in f:
-                    if line.startswith('MemAvailable:'):
-                        mem_kb = int(line.split()[1])
-                        mem_mb = mem_kb // 1024
-                        logging.info(f"Available memory: {mem_mb}MB")
-
-                        if mem_mb < 100:
-                            logging.warning(f"⚠️ Low memory: {mem_mb}MB available")
-                            return False
-                        else:
-                            logging.info(f"✅ Sufficient memory: {mem_mb}MB available")
-                            return True
-
-            logging.error("❌ Could not read memory information")
+            status = self._request_json(SENSOR_URL, "/status")
+        except (HTTPError, URLError, TimeoutError) as exc:
+            logging.error(f"Sensor API request failed: {exc}")
             return False
 
-        except Exception as e:
-            logging.error(f"❌ Memory test failed: {e}")
+        if "magnet_present" not in status:
+            logging.error(f"Unexpected sensor status response: {status}")
             return False
+
+        logging.info(f"Sensor API OK: {status}")
+        return True
 
     def run_all_tests(self):
-        """Run all API service tests."""
+        """Run requested API service tests."""
         tests = [
-            ("Port Binding", self.test_port_binding),
-            ("Memory Usage", self.test_memory_usage),
             ("Actuator Service", self.test_actuator_service),
             ("Sensor Service", self.test_sensor_service),
         ]
 
         results = []
         for test_name, test_func in tests:
-            logging.info(f"\n{'='*50}")
+            logging.info(f"\n{'=' * 50}")
             logging.info(f"Running: {test_name}")
-            logging.info(f"{'='*50}")
-
+            logging.info(f"{'=' * 50}")
             try:
-                result = test_func()
-                results.append((test_name, result))
-            except Exception as e:
-                logging.error(f"❌ {test_name} crashed: {e}")
+                results.append((test_name, test_func()))
+            except Exception as exc:
+                logging.error(f"{test_name} crashed: {exc}")
                 results.append((test_name, False))
 
-        # Summary
-        logging.info(f"\n{'='*50}")
+        return self._summarize(results)
+
+    def run_service_test(self, service):
+        """Run test for a specific service."""
+        if service == "actuator":
+            return self._summarize([("Actuator Service", self.test_actuator_service())])
+        if service == "sensor":
+            return self._summarize([("Sensor Service", self.test_sensor_service())])
+
+        logging.error(f"Unknown service: {service}")
+        return False
+
+    def _summarize(self, results):
+        logging.info(f"\n{'=' * 50}")
         logging.info("API SERVICE TEST SUMMARY")
-        logging.info(f"{'='*50}")
+        logging.info(f"{'=' * 50}")
 
         passed = 0
         for test_name, result in results:
-            status = "✅ PASS" if result else "❌ FAIL"
+            status = "PASS" if result else "FAIL"
             logging.info(f"{status} {test_name}")
             if result:
                 passed += 1
 
         logging.info(f"\nResult: {passed}/{len(results)} tests passed")
+        return passed == len(results)
 
-        if passed == len(results):
-            logging.info("🎉 All API service tests PASSED! Services ready.")
-            return True
-        else:
-            logging.error("💥 Some API service tests FAILED! Check service setup.")
-            return False
-
-    def run_service_test(self, service):
-        """Run test for specific service."""
-        if service == "actuator":
-            return self.test_actuator_service()
-        elif service == "sensor":
-            return self.test_sensor_service()
-        else:
-            logging.error(f"Unknown service: {service}")
-            return False
 
 def main():
-    parser = argparse.ArgumentParser(description="Test API services on Pi Zero 2W")
-    parser.add_argument("--service", choices=["actuator", "sensor"],
-                       help="Test specific service only")
+    parser = argparse.ArgumentParser(description="Test Raspberry Pi API services")
+    parser.add_argument("--service", choices=["actuator", "sensor"])
+    parser.add_argument(
+        "--start-processes",
+        action="store_true",
+        help="Start temporary Flask processes instead of checking deployed services",
+    )
     args = parser.parse_args()
 
     setup_logging()
-    logging.info("🚀 Starting API service tests on Pi Zero 2W...")
-    logging.info(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info("Starting API service tests...")
 
-    tester = ServiceTester()
+    tester = ServiceTester(start_processes=args.start_processes)
 
-    # Set up cleanup on exit
     def signal_handler(sig, frame):
         logging.info("Cleaning up...")
         tester.cleanup()
@@ -337,11 +239,10 @@ def main():
             success = tester.run_service_test(args.service)
         else:
             success = tester.run_all_tests()
-
         sys.exit(0 if success else 1)
-
     finally:
         tester.cleanup()
+
 
 if __name__ == "__main__":
     main()

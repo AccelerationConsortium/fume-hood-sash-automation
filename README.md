@@ -70,40 +70,7 @@ All hardware and application settings are managed via YAML files in the `/users/
 ### On a Raspberry Pi (for Deployment)
 These instructions are for setting up the application on the target hardware.
 
-1.  **Create the Python environment in ~/Projects**:
-    ```bash
-    # Create Projects directory if it doesn't exist
-    mkdir -p ~/Projects
-    cd ~/Projects
-
-    # Create virtual environment with system site packages
-    python3 -m venv sash_env --system-site-packages
-
-    # Activate the environment
-    source sash_env/bin/activate
-    ```
-
-2.  **Set up auto-activation on SSH login**:
-    ```bash
-    # Edit your profile to auto-activate the environment
-    nano ~/.profile
-
-    # Add this line to the end of ~/.profile:
-    source ~/Projects/sash_env/bin/activate
-
-    # Apply the changes
-    source ~/.profile
-    ```
-
-3.  **Clone the repository**:
-    ```bash
-    # Make sure you're in the Projects directory with environment activated
-    cd ~/Projects
-    git clone https://github.com/your-username/fume-hood-sash-automation.git
-    cd fume-hood-sash-automation
-    ```
-
-4.  **Install Raspberry Pi hardware libraries**:
+1.  **Install Raspberry Pi hardware libraries**:
     Install GPIO support from Raspberry Pi OS instead of PyPI. The PyPI `RPi.GPIO`
     wheel can fail GPIO edge detection on newer Pi/Python combinations.
     ```bash
@@ -111,14 +78,34 @@ These instructions are for setting up the application on the target hardware.
     sudo apt install -y python3-rpi.gpio i2c-tools
     ```
 
-5.  **Install Python dependencies**:
-    This command installs the base package along with the extras needed for the actuator and sensor. The virtual environment should be created with `--system-site-packages` so it can use the OS-provided GPIO package.
+2.  **Clone the repository**:
     ```bash
-    pip install --upgrade pip
-    pip install -e ".[actuator,sensor]"
+    cd ~
+    git clone https://github.com/AccelerationConsortium/fume-hood-sash-automation.git
+    cd fume-hood-sash-automation
     ```
 
-6.  **Confirm safe startup settings**:
+3.  **Create and activate the project virtual environment**:
+    Create the venv inside the repo and include system site packages so Python can
+    use the OS-provided GPIO package.
+    ```bash
+    python3 -m venv venv --system-site-packages
+    source venv/bin/activate
+    ```
+
+4.  **Install Python dependencies for this Pi**:
+    On an actuator Pi, install only the actuator extra. On a sensor Pi, install
+    only the sensor extra.
+    ```bash
+    pip install --upgrade pip
+    pip install -e ".[actuator]"
+    ```
+    For a sensor-only Pi:
+    ```bash
+    pip install -e ".[sensor]"
+    ```
+
+5.  **Confirm safe startup settings**:
     Keep startup homing disabled while commissioning. If `home_on_startup` is set
     to `true`, the actuator may move immediately when the API service starts or
     the Pi reboots.
@@ -188,18 +175,18 @@ curl http://<pi-tailscale-ip>:5000/status
 
 ### Starting the API Service
 
-**🚨 IMPORTANT**: The API service must be running for remote control to work.
+**IMPORTANT**: The API service must be running for remote control to work.
 
 #### Option 1: Direct Command (Development/Testing)
 ```bash
 # Make sure you're in the project directory and virtual environment is activated
-cd ~/Projects
-source sash_env/bin/activate
+cd ~/fume-hood-sash-automation
+source venv/bin/activate
 
 # Start the actuator API service (runs on port 5000)
 hood_sash_automation_actuator
 
-# In another terminal, start the sensor API service (runs on port 5005)
+# On a sensor Pi, start the sensor API service (runs on port 5005)
 hood_sash_automation_sensor
 ```
 
@@ -220,41 +207,87 @@ Once the API service is running, you can control it via HTTP requests:
 
 #### Actuator API (Port 5000)
 
+Set a base URL for the Pi. This can be a hostname, LAN IP, or Tailscale IP:
+```bash
+PI=http://100.64.254.100:5000
+```
+
+**Health check:**
+```bash
+curl "$PI/health"
+```
+Example response:
+```json
+{
+  "status": "healthy",
+  "actuator": {
+    "current_position": 3,
+    "is_moving": false
+  }
+}
+```
+
 **Move to a position:**
 ```bash
-curl -X POST http://raspberrypi.local:5000/move \
+curl -X POST "$PI/move" \
   -H "Content-Type: application/json" \
   -d '{"position": 3}'
+```
+Example response:
+```json
+{
+  "message": "Moving to position 3"
+}
 ```
 
 **Stop movement:**
 ```bash
-curl -X POST http://raspberrypi.local:5000/stop
+curl -X POST "$PI/stop"
 ```
 
 **Get current status:**
 ```bash
-curl http://raspberrypi.local:5000/status
+curl "$PI/status"
 ```
 Example response:
 ```json
 {
   "current_position": 3,
-  "is_moving": false,
-  "last_movement": "2024-01-15T10:30:00Z"
+  "is_moving": false
 }
 ```
 
 **Get current position only:**
 ```bash
-curl http://raspberrypi.local:5000/position
+curl "$PI/position"
+```
+Example response:
+```json
+{
+  "position": 3
+}
+```
+If no Hall sensor is active, `position` is `null`.
+
+**Monitor movement:**
+```bash
+while true; do
+  curl -s "$PI/status"
+  echo
+  sleep 0.5
+done
 ```
 
 #### Sensor API (Port 5005)
 
+Set a base URL for the sensor Pi:
+```bash
+SENSOR_PI=http://100.64.254.101:5005
+```
+
 **Get sensor status:**
 ```bash
-curl http://raspberrypi.local:5005/status
+curl "$SENSOR_PI/status"
 ```
 Example response:
 ```json
@@ -285,7 +318,7 @@ Example response:
 The `users/examples/` directory contains an example script, `remote_control_example.py`, that demonstrates how to control the sash from any computer on the same network.
 
 ### Prerequisites
-**⚠️ The API service must be running on your Raspberry Pi first** (see [Starting the API Service](#starting-the-api-service) above).
+**The API service must be running on your Raspberry Pi first** (see [Starting the API Service](#starting-the-api-service) above).
 
 ### Usage
 1.  **Install Dependencies**: The script requires the `requests` library.
@@ -300,11 +333,11 @@ The `users/examples/` directory contains an example script, `remote_control_exam
 
 ### What It Does
 The script will:
-- ✅ Check if the API service is running
-- 🏠 Move the sash to home position (1)
-- 🔄 Cycle through all positions (2, 3, 4, 5)
-- 🏠 Return to home position
-- 📊 Display real-time status updates
+- Check if the API service is running
+- Move the sash to home position (1)
+- Cycle through all positions (2, 3, 4, 5)
+- Return to home position
+- Display real-time status updates
 
 ### Example Output
 ```
@@ -321,25 +354,25 @@ API Response: Moving to position 2
   [Polling] Current Position: 2, Is Moving: false
 Movement finished. Final position: 2
 
-✅ Sequence complete.
+Sequence complete.
 ```
 
 ## Testing
 
 This project uses a comprehensive three-layer testing approach for safe development and deployment.
 
-**📋 See [tests/Test.md](tests/Test.md) for complete testing documentation.**
+**See [tests/Test.md](tests/Test.md) for complete testing documentation.**
 
 ### Quick Start
 ```bash
 # Development testing (local laptop)
 ./tests/docker-test/scripts/test_local.sh integration
 
-# Pi device testing (safe without hardware)
-python tests/device-test/smoke_tests.py
+# Pi actuator hardware access smoke test
+python tests/device-test/smoke_tests.py --component actuator
 
-# Hardware integration (with connected devices)
-sudo systemctl start actuator sensor
+# Running actuator API test
+python tests/device-test/api_service_test.py --service actuator
 ```
 
 ## Hardware

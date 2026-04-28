@@ -6,7 +6,7 @@ This project uses a **comprehensive three-layer testing approach**:
 2. **Pi Zero 2W Testing**: Safe validation on real Pi hardware **without connected devices**
 3. **Hardware Integration**: Full testing with connected sensors and actuators
 
-## 🚀 Quick Start Testing
+## Quick Start Testing
 
 ### **Development Testing** (on your laptop)
 ```bash
@@ -20,33 +20,33 @@ This project uses a **comprehensive three-layer testing approach**:
 ./tests/docker-test/scripts/test_local.sh all
 ```
 
-### **Pi Zero 2W Testing** (safe, no hardware required)
+### **Pi Testing** (on deployed Raspberry Pi)
 ```bash
-# Deploy to Pi Zero 2W
-git push && ssh pi@your-pi-ip "cd fume-hood && git pull"
+# Deploy to Pi
+git push && ssh sdl2@your-pi-ip "cd ~/fume-hood-sash-automation && git pull"
 
-# Basic validation (30s - covers 95% of Pi compatibility)
-ssh pi@your-pi-ip "cd fume-hood && python tests/device-test/smoke_tests.py"
+# Hardware access smoke test
+ssh sdl2@your-pi-ip "cd ~/fume-hood-sash-automation && source venv/bin/activate && python tests/device-test/smoke_tests.py --component actuator"
 
-# Optional: API service testing (60s - if using microservices)
-ssh pi@your-pi-ip "cd fume-hood && python tests/device-test/api_service_test.py"
+# Running API service test
+ssh sdl2@your-pi-ip "cd ~/fume-hood-sash-automation && source venv/bin/activate && python tests/device-test/api_service_test.py --service actuator"
 ```
 
 ### **Hardware Integration** (with connected devices)
 ```bash
 # Only after Pi testing passes - start services with real hardware
-ssh pi@your-pi-ip "sudo systemctl start actuator sensor"
+ssh sdl2@your-pi-ip "sudo systemctl start actuator.service"
 ```
 
-## 🎯 Testing Strategy
+## Testing Strategy
 
 | Test Layer | Where | Duration | Coverage | Safety |
 |------------|-------|----------|----------|---------|
-| **Docker Tests** | Local laptop | 5-30s | Business logic, mocked hardware | ✅ Completely safe |
-| **Pi Device Tests** | Pi Zero 2W | 30-60s | ARM compatibility, GPIO/I2C access | ✅ Safe without devices |
-| **Hardware Tests** | Pi + devices | Manual | Full integration | ⚠️ Requires connected hardware |
+| **Docker Tests** | Local laptop | 5-30s | Business logic, mocked hardware | Completely safe |
+| **Pi Device Tests** | Pi Zero 2W | 30-60s | ARM compatibility, GPIO/I2C access | Safe without devices |
+| **Hardware Tests** | Pi + devices | Manual | Full integration | Requires connected hardware |
 
-## 🔧 Pi Zero 2W Testing Without Hardware
+## Pi Zero 2W Testing Without Hardware
 
 **Perfect for development and validation** - test your code on real Pi hardware before connecting expensive devices:
 
@@ -56,27 +56,28 @@ ssh pi@your-pi-ip "sudo systemctl start actuator sensor"
 - **Environment Check**: Confirm GPIO/I2C access and dependencies
 
 ```bash
-# SSH into your Pi Zero 2W
-ssh pi@your-pi-ip
+# SSH into your Pi
+ssh sdl2@your-pi-ip
 
 # Install and test (safe for disconnected hardware)
-cd fume-hood-sash-automation
-pip install -e .[actuator,sensor]
-python tests/device-test/smoke_tests.py
+cd ~/fume-hood-sash-automation
+source venv/bin/activate
+pip install -e ".[actuator]"
+python tests/device-test/smoke_tests.py --component actuator
 ```
 
 Expected output with no devices connected:
 ```
-🎉 All smoke tests PASSED! Device is ready.
+All smoke tests PASSED! Device is ready.
 Result: 7/7 tests passed
-- ✅ GPIO access working
-- ✅ I2C access working
-- ✅ All modules import correctly
-- ✅ Configuration files valid
-- ✅ Hardware classes initialize safely
+- GPIO access working
+- I2C access working
+- All modules import correctly
+- Configuration files valid
+- Hardware classes initialize safely
 ```
 
-## 📚 Detailed Testing Documentation
+## Detailed Testing Documentation
 
 ### Docker Testing
 - **[Docker Testing Guide](docker-test/README.md)** - Local development testing with mocked hardware
@@ -100,15 +101,15 @@ Result: 7/7 tests passed
 
 ```
 tests/
-├── Test.md                 # This documentation file
-├── docker-test/           # Local Docker testing
-│   ├── README.md         # Docker testing guide
-│   ├── scripts/          # Testing scripts
-│   └── tests/           # Test files
-├── device-test/          # Pi device testing
-│   ├── README.md        # Device testing guide
-│   ├── smoke_tests.py   # Quick Pi validation
-│   └── api_service_test.py  # API service testing
+|-- Test.md                 # This documentation file
+|-- docker-test/            # Local Docker testing
+|   |-- README.md           # Docker testing guide
+|   |-- scripts/            # Testing scripts
+|   `-- tests/              # Test files
+`-- device-test/            # Pi device testing
+    |-- README.md           # Device testing guide
+    |-- smoke_tests.py      # Quick Pi validation
+    `-- api_service_test.py # API service testing
 ```
 
 ## Testing Best Practices

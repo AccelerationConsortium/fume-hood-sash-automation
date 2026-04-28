@@ -1,27 +1,34 @@
 # Fume Hood Sash Automation - Microservice Setup Guide
 
-## 🎯 Overview
+## Overview
 
 This project provides a **microservice** for remote control of fume hood sash positioning via SSH.
 It exposes a REST API running locally on a Raspberry Pi that can be accessed securely through SSH tunneling from external applications.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────┐    SSH/curl     ┌─────────────────┐    GPIO/I2C    ┌─────────────────┐
-│   Your UI App   │ ──────────────► │  Raspberry Pi   │ ──────────────► │  Fume Hood      │
-│                 │                 │                 │                 │                 │
-│ - Web Interface │                 │ - Flask API     │                 │ - Hall Sensors  │
-│ - Lab Workflow  │                 │ - SashActuator  │                 │ - Motor Relays  │
-│ - Automation    │                 │ - Hardware Ctrl │                 │ - Current Mon.  │
-└─────────────────┘                 └─────────────────┘                 └─────────────────┘
-        ▲                                     ▲
-        │                                     │
-        └─── FumeHoodSashClient ──────────────┘
-             (Python Client Library)
+Your UI App
+  - Web Interface
+  - Lab Workflow
+  - Automation
+       |
+       | SSH/curl or FumeHoodSashClient
+       v
+Raspberry Pi
+  - Flask API
+  - SashActuator
+  - Hardware control
+       |
+       | GPIO/I2C
+       v
+Fume Hood
+  - Hall sensors
+  - Motor relays
+  - Current monitor
 ```
 
-## 📦 Installation
+## Installation
 
 ### On Raspberry Pi (Microservice Host)
 
@@ -69,7 +76,7 @@ It exposes a REST API running locally on a Raspberry Pi that can be accessed sec
    pip install requests  # If using HTTP requests
    ```
 
-## 🔌 API Reference
+## API Reference
 
 ### Base URL
 - **Local (on Pi)**: `http://localhost:5000`
@@ -139,7 +146,7 @@ Emergency stop current movement.
 }
 ```
 
-## 🐍 Python Client Usage
+## Python Client Usage
 
 ### Basic Integration
 
@@ -151,9 +158,9 @@ sash = FumeHoodSashClient('192.168.1.100')  # Your Pi's IP
 
 # Check connection
 if sash.ping():
-    print("✅ Fume hood microservice is online")
+    print("Fume hood microservice is online")
 else:
-    print("❌ Cannot reach microservice")
+    print("Cannot reach microservice")
 
 # Get current status
 status = sash.get_status()
@@ -163,9 +170,9 @@ print(f"Moving: {status['is_moving']}")
 # Move to position (asynchronous)
 response = sash.move_to_position(3)
 if 'error' not in response:
-    print("✅ Move command sent")
+    print("Move command sent")
 else:
-    print(f"❌ Move failed: {response['error']}")
+    print(f"Move failed: {response['error']}")
 
 # Emergency stop
 sash.stop()
@@ -177,9 +184,9 @@ sash.stop()
 # Move and wait for completion
 try:
     final_status = sash.move_and_wait(position=5, timeout=30)
-    print(f"✅ Movement complete: position {final_status['current_position']}")
+    print(f"Movement complete: position {final_status['current_position']}")
 except Exception as e:
-    print(f"❌ Movement failed: {e}")
+    print(f"Movement failed: {e}")
 
 # Poll status during movement
 sash.move_to_position(2)
@@ -200,14 +207,14 @@ class LabWorkflow:
         """Prepare fume hood for experiment setup"""
         try:
             # Open hood for equipment setup
-            print("🔓 Opening fume hood for setup...")
+            print("Opening fume hood for setup...")
             self.fume_hood.move_and_wait(position=5, timeout=30)
 
             # User can now set up equipment
             input("Press Enter when setup is complete...")
 
             # Close for safety during experiment
-            print("🔒 Closing fume hood for experiment...")
+            print("Closing fume hood for experiment...")
             self.fume_hood.move_and_wait(position=1, timeout=30)
 
             return {"status": "ready", "hood_position": 1}
@@ -219,11 +226,11 @@ class LabWorkflow:
 
     def cleanup_experiment(self):
         """Open hood for cleanup"""
-        print("🧹 Opening fume hood for cleanup...")
+        print("Opening fume hood for cleanup...")
         return self.fume_hood.move_and_wait(position=4, timeout=30)
 ```
 
-## 🔐 SSH Control Methods
+## SSH Control Methods
 
 ### 1. Direct SSH Commands
 
@@ -268,7 +275,7 @@ chmod +x src/hood_sash_automation/api/ssh_control.sh
 ./src/hood_sash_automation/api/ssh_control.sh 192.168.1.100 restart
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Hardware Configuration (`users/config/actuator_config.yaml`)
 
@@ -313,7 +320,7 @@ client = FumeHoodSashClient(
 )
 ```
 
-## 🛡️ Security Considerations
+## Security Considerations
 
 ### SSH Security
 - **Use SSH keys** instead of passwords:
@@ -340,7 +347,7 @@ client = FumeHoodSashClient(
 - Movement timeouts prevent runaway conditions
 - Physical stop button support
 
-## 📊 Monitoring & Troubleshooting
+## Monitoring & Troubleshooting
 
 ### Service Status
 ```bash
@@ -359,9 +366,9 @@ ssh pi@your-pi "sudo systemctl restart actuator.service"
 # Test connectivity
 client = FumeHoodSashClient('192.168.1.100')
 if client.ping():
-    print("✅ Service is healthy")
+    print("Service is healthy")
 else:
-    print("❌ Service is not responding")
+    print("Service is not responding")
 ```
 
 ### Common Issues
@@ -386,7 +393,7 @@ ssh pi@your-pi "ls -la /dev/gpiomem"
 ssh pi@your-pi "groups pi"  # Should include 'gpio' group
 ```
 
-## 🚀 Development & Testing
+## Development & Testing
 
 ### Local Testing (Docker)
 Use the provided Docker testing environment:
@@ -420,7 +427,7 @@ python users/examples/microservice_client.py 192.168.1.100
 python users/examples/ssh_client_example.py 192.168.1.100 sequence
 ```
 
-## 📚 Integration Examples
+## Integration Examples
 
 ### Web Application (Flask/FastAPI)
 ```python
@@ -482,7 +489,7 @@ class LabAutomation:
 
     async def prepare_workspace(self):
         """Open hood, position robot, initialize instruments"""
-        print("🔧 Preparing workspace...")
+        print("Preparing workspace...")
 
         # Open fume hood for setup
         self.fume_hood.move_and_wait(position=5, timeout=30)
@@ -493,7 +500,7 @@ class LabAutomation:
         # Initialize spectrometer
         await self.spectrometer.calibrate()
 
-        print("✅ Workspace ready")
+        print("Workspace ready")
 
     def emergency_stop_all(self):
         """Stop all equipment immediately"""
@@ -502,7 +509,7 @@ class LabAutomation:
         self.spectrometer.abort()
 ```
 
-## 📋 API Client Library Reference
+## API Client Library Reference
 
 ### FumeHoodSashClient Class
 
@@ -534,7 +541,7 @@ except Exception as e:
     print(f"Error communicating with fume hood: {e}")
 ```
 
-## 🔗 Related Documentation
+## Related Documentation
 
 - **Hardware Setup**: See `README.md` for physical installation
 - **Docker Testing**: See `docker-test/README.md` for development environment
@@ -545,4 +552,4 @@ except Exception as e:
 
 ---
 
-**🎯 Your fume hood is now ready to integrate as a microservice into any workflow automation system!**
+**Your fume hood is now ready to integrate as a microservice into any workflow automation system!**

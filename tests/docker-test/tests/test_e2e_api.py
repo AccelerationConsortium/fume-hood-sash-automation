@@ -18,11 +18,11 @@ def wait_for_services():
             try:
                 response = requests.get(f"{url}/status", timeout=5)
                 if response.status_code == 200:
-                    print(f"✓ {service_name} service is ready")
+                    print(f"{service_name} service is ready")
                     break
             except requests.exceptions.RequestException:
                 if i == max_retries - 1:
-                    pytest.fail(f"❌ {service_name} service failed to start")
+                    pytest.fail(f"{service_name} service failed to start")
                 time.sleep(retry_delay)
 
 class TestActuatorServiceE2E:
