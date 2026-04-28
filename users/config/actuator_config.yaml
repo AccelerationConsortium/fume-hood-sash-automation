@@ -37,7 +37,7 @@ max_movement_time: 10.0 # Max time allowed for any single movement command
 position_timeout: 2.0   # Max time allowed between detecting consecutive hall sensors
 
 # Debounce time for hall sensors in milliseconds
-bounce_ms: 10
+bounce_ms: 200
 
 # File Paths
 # ----------
