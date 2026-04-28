@@ -34,7 +34,8 @@ def create_app():
         'MAX_MOVEMENT_TIME': config['max_movement_time'],
         'POSITION_TIMEOUT': config['position_timeout'],
         'POSITION_STATE_FILE': config['position_state_file'],
-        'LOG_DIR': config['log_dir']
+        'LOG_DIR': config['log_dir'],
+        'HOME_ON_STARTUP': config.get('home_on_startup', False)
     }
 
     actuator = SashActuator(actuator_config)

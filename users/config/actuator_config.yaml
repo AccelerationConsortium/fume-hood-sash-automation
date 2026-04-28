@@ -24,6 +24,9 @@ i_max: 3.0    # Maximum expected current in Amps
 
 # Movement and Safety Settings
 # ----------------------------
+# Keep disabled while commissioning so API startup/reboot never moves the sash unexpectedly.
+home_on_startup: false
+
 # Raw shunt value from the INA219 that indicates a collision.
 # These values may need tuning for your specific motor and power supply.
 current_threshold_up: 1300

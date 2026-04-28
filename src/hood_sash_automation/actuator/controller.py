@@ -28,14 +28,15 @@ class SashActuator:
 
         logging.info(f"Calibration register: 0x{self.sensor.cal_value_read():04X}")
 
-        self.current_position = None
+        self.current_position = self.get_current_position()
         self.hall.set_callback(self.hall_callback)
         self.stop_flag = threading.Event()
         self.movement_thread = None
 
         self.display_mode = 'position' # Default display mode
 
-        self.home_on_startup()
+        if self.config.get('HOME_ON_STARTUP', False):
+            self.home_on_startup()
 
 
     def _setup_logging(self):

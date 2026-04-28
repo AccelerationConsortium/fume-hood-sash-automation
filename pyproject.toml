@@ -32,7 +32,10 @@ test = [
     "pylint",
     "bandit"
 ]
-rpi_hardware = ["RPi.GPIO"]
+# On Raspberry Pi OS, install RPi.GPIO from apt (`python3-rpi.gpio`) and create the
+# venv with `--system-site-packages`. The PyPI wheel can break edge detection on
+# newer Pi/Python combinations.
+rpi_hardware = []
 
 [project.urls]
 "Homepage" = "https://github.com/your-username/fume-hood-sash-automation"

@@ -103,11 +103,19 @@ These instructions are for setting up the application on the target hardware.
     cd fume-hood-sash-automation
     ```
 
-4.  **Install all dependencies**:
-    This command installs the base package along with the extras needed for the actuator, sensor, and the real Raspberry Pi hardware libraries.
+4.  **Install Raspberry Pi hardware libraries**:
+    Install GPIO support from Raspberry Pi OS instead of PyPI. The PyPI `RPi.GPIO`
+    wheel can fail GPIO edge detection on newer Pi/Python combinations.
+    ```bash
+    sudo apt update
+    sudo apt install -y python3-rpi.gpio i2c-tools
+    ```
+
+5.  **Install Python dependencies**:
+    This command installs the base package along with the extras needed for the actuator and sensor. The virtual environment should be created with `--system-site-packages` so it can use the OS-provided GPIO package.
     ```bash
     pip install --upgrade pip
-    pip install -e ".[actuator,sensor,rpi_hardware]"
+    pip install -e ".[actuator,sensor]"
     ```
 
 ### On macOS / Windows / Linux (for Local Development & Testing)
