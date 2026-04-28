@@ -3,12 +3,16 @@ import signal
 import logging
 import yaml
 import os
+from pathlib import Path
 from flask import Flask, jsonify
 from .sensor import SashSensor
 
 def load_config():
     """Load configuration from YAML file."""
-    config_path = os.path.join(os.getcwd(), 'users', 'config', 'sensor_config.yaml')
+    config_path = Path(os.environ.get(
+        "HOOD_SASH_SENSOR_CONFIG",
+        Path(__file__).resolve().parents[1] / "config" / "sensor_config.yaml"
+    ))
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 

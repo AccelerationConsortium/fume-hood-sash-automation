@@ -321,7 +321,7 @@ Some smoke tests FAILED! Check device setup.
 **Hardware not responding**
 - Check physical connections
 - Verify power supply
-- Review users/config/actuator_config.yaml and users/config/sensor_config.yaml
+- Review src/hood_sash_automation/config/actuator_config.yaml and src/hood_sash_automation/config/sensor_config.yaml
 
 ## File Structure
 
@@ -331,7 +331,7 @@ device-test/
 |-- api_service_test.py # API service testing (optional)
 |-- smoke_test.log      # Test execution log
 |-- api_test.log        # API test execution log
-`-- README.md           # This file
+`-- Device_Test.md      # This file
 
 # Future expansion:
 |-- integration/        # Real hardware integration tests

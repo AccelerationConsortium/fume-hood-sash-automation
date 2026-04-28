@@ -11,7 +11,6 @@ services:
     volumes:
       - ./tests:/app/tests:ro
       - ./src:/app/src:ro
-      - ./config:/app/config:ro
       - ./test-results:/app/test-results
     environment:
       - FLASK_ENV=testing
@@ -37,8 +36,6 @@ services:
     command: hood_sash_automation_actuator
     ports:
       - "5000:5000"
-    volumes:
-      - ./config:/app/config:ro
     environment:
       - FLASK_ENV=testing
     healthcheck:
@@ -56,8 +53,6 @@ services:
     command: hood_sash_automation_sensor
     ports:
       - "5005:5005"
-    volumes:
-      - ./config:/app/config:ro
     environment:
       - FLASK_ENV=testing
     healthcheck:

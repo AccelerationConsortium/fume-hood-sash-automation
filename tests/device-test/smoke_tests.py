@@ -99,14 +99,14 @@ def test_config_loading():
         import yaml
 
         # Test actuator config
-        with open(ROOT_DIR / "users" / "config" / "actuator_config.yaml", 'r') as f:
+        with open(ROOT_DIR / "src" / "hood_sash_automation" / "config" / "actuator_config.yaml", 'r') as f:
             actuator_config = yaml.safe_load(f)
         assert 'relay_ext_pin' in actuator_config
         assert 'hall_pins' in actuator_config
         assert 'i2c_bus' in actuator_config
 
         # Test sensor config
-        with open(ROOT_DIR / "users" / "config" / "sensor_config.yaml", 'r') as f:
+        with open(ROOT_DIR / "src" / "hood_sash_automation" / "config" / "sensor_config.yaml", 'r') as f:
             sensor_config = yaml.safe_load(f)
         assert 'hall_sensor_pin' in sensor_config
         assert 'led_pin' in sensor_config
@@ -122,7 +122,7 @@ def test_actuator_hardware_init():
     logging.info("Testing actuator hardware initialization...")
     try:
         import yaml
-        with open(ROOT_DIR / "users" / "config" / "actuator_config.yaml", 'r') as f:
+        with open(ROOT_DIR / "src" / "hood_sash_automation" / "config" / "actuator_config.yaml", 'r') as f:
             config = yaml.safe_load(f)
 
         # Test relay initialization (but don't activate)
@@ -147,7 +147,7 @@ def test_sensor_hardware_init():
     logging.info("Testing sensor hardware initialization...")
     try:
         import yaml
-        with open(ROOT_DIR / "users" / "config" / "sensor_config.yaml", 'r') as f:
+        with open(ROOT_DIR / "src" / "hood_sash_automation" / "config" / "sensor_config.yaml", 'r') as f:
             config = yaml.safe_load(f)
 
         from hood_sash_automation.sensor.sensor import SashSensor

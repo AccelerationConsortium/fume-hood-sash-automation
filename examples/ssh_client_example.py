@@ -4,10 +4,11 @@ SSH Client Example for Fume Hood Sash Automation
 Demonstrates remote control via SSH with proper error handling.
 """
 
-import subprocess
 import json
-import time
+import subprocess
 import sys
+import time
+
 
 class FumeHoodSSHClient:
     def __init__(self, pi_ip, username='pi'):
@@ -41,9 +42,14 @@ class FumeHoodSSHClient:
         elif method == 'POST':
             if data:
                 json_data = json.dumps(data).replace('"', '\\"')
-                command = f"curl -X POST {self.base_url}{endpoint} -H 'Content-Type: application/json' -d \"{json_data}\""
+                command = (
+                    f"curl -X POST {self.base_url}{endpoint} "
+                    f"-H 'Content-Type: application/json' -d \"{json_data}\""
+                )
             else:
                 command = f"curl -X POST {self.base_url}{endpoint}"
+        else:
+            raise ValueError(f"Unsupported method: {method}")
 
         response = self._ssh_command(command)
 
@@ -92,17 +98,17 @@ class FumeHoodSSHClient:
 
     def move_and_wait(self, position, timeout=30):
         """Move to position and wait for completion."""
-        print(f"🚀 Moving to position {position}...")
+        print(f"Moving to position {position}...")
         response = self.move_to_position(position)
 
         if 'error' in response:
             raise Exception(f"Move failed: {response['error']}")
 
-        print(f"✅ Move command accepted: {response.get('message', '')}")
+        print(f"Move command accepted: {response.get('message', '')}")
 
         if self.wait_for_movement_complete(timeout):
             final_status = self.get_status()
-            print(f"🎯 Movement complete! Position: {final_status.get('current_position')}")
+            print(f"Movement complete. Position: {final_status.get('current_position')}")
             return final_status
 
     def get_service_logs(self, lines=20):
@@ -121,7 +127,7 @@ class FumeHoodSSHClient:
         try:
             result = self._ssh_command(command)
             return result.strip() == 'active'
-        except:
+        except Exception:
             return False
 
 
@@ -142,11 +148,11 @@ def main():
 
         if command == 'status':
             status = client.get_status()
-            print(f"📊 Status: {json.dumps(status, indent=2)}")
+            print(f"Status: {json.dumps(status, indent=2)}")
 
         elif command == 'position':
             pos = client.get_position()
-            print(f"📍 Position: {json.dumps(pos, indent=2)}")
+            print(f"Position: {json.dumps(pos, indent=2)}")
 
         elif command == 'move':
             if len(sys.argv) < 4:
@@ -157,27 +163,26 @@ def main():
 
         elif command == 'stop':
             response = client.stop()
-            print(f"🛑 Stop: {json.dumps(response, indent=2)}")
+            print(f"Stop: {json.dumps(response, indent=2)}")
 
         elif command == 'logs':
             logs = client.get_service_logs()
-            print("📋 Recent logs:")
+            print("Recent logs:")
             print(logs)
 
         elif command == 'sequence':
-            # Demo sequence: move through positions
-            print("🎭 Running demo sequence...")
+            print("Running demo sequence...")
             for pos in [1, 3, 5, 2, 1]:
                 client.move_and_wait(pos, timeout=15)
                 time.sleep(2)
-            print("✅ Sequence complete!")
+            print("Sequence complete.")
 
         else:
             print(f"Unknown command: {command}")
             sys.exit(1)
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         sys.exit(1)
 
 

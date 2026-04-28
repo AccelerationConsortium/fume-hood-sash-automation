@@ -41,8 +41,5 @@ USER appuser
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy the configuration directory
-COPY --chown=appuser:appuser config ./config
-
 # Set the default command to show that the image works
-CMD ["python", "-c", "print('Fume Hood Automation Docker image is ready. Use docker-compose to run services.')"] 
+CMD ["python", "-c", "print('Fume Hood Automation Docker image is ready. Use docker-compose to run services.')"]

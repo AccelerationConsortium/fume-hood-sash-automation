@@ -12,7 +12,6 @@ services:
     volumes:
       - ./tests:/app/tests:ro
       - ./src:/app/src:ro
-      - ./config:/app/config:ro
       - ./test-results:/app/test-results
     environment:
       - FLASK_ENV=testing
@@ -47,7 +46,6 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./config:/app/config:ro
       # Mock hardware access for testing
       - /dev/null:/dev/gpiomem
       - /dev/null:/dev/i2c-1
@@ -74,7 +72,6 @@ services:
     ports:
       - "5005:5005"
     volumes:
-      - ./config:/app/config:ro
       # Mock hardware access for testing
       - /dev/null:/dev/i2c-1
     environment:

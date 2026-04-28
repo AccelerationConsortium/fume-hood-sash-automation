@@ -12,11 +12,6 @@ services:
     ports:
       # Expose the service's port 5000 to the same port on the host machine
       - "5000:5000"
-    volumes:
-      # Mount the local config directory into the container.
-      # This allows you to change settings in users/config/actuator_config.yaml
-      # and have them reflected in the container without rebuilding.
-      - ./config:/app/config:ro
     restart: unless-stopped
 
   sensor:
@@ -29,7 +24,4 @@ services:
     ports:
       # Expose the service's port 5005 to the same port on the host machine
       - "5005:5005"
-    volumes:
-      # Mount the local config directory into the container.
-      - ./config:/app/config:ro
-    restart: unless-stopped 
+    restart: unless-stopped

@@ -140,7 +140,7 @@ class TestActuatorIntegration:
 
         # Mock current sensor to return high current by patching the method
         with patch.object(actuator.sensor, 'read_raw_shunt', return_value=2000):
-        # Test current monitoring
+            # Test current monitoring
             is_safe = actuator._check_movement_current('up')
             assert is_safe == False  # Should return False when overcurrent detected
 
@@ -161,15 +161,15 @@ class TestAPIIntegration:
             'position_state_file': "/tmp/test_pos", 'log_dir': "/tmp/test_log"
         }
 
-        with patch('hood_sash_automation.actuator.api_service.SashActuator') as mock_actuator_class:
+        with patch('hood_sash_automation.api.api_service.SashActuator') as mock_actuator_class:
             # Configure the mock actuator instance
             mock_instance = MagicMock()
             mock_instance.get_status.return_value = {"position": 2, "moving": False}
             mock_actuator_class.return_value = mock_instance
 
             with patch('yaml.safe_load', return_value=mock_config):
-            from hood_sash_automation.actuator.api_service import create_app
-            app = create_app()
+                from hood_sash_automation.api.api_service import create_app
+                app = create_app()
 
             with app.test_client() as client:
                 yield client, mock_instance
@@ -187,8 +187,8 @@ class TestAPIIntegration:
         assert response.status_code == 500
         # Flask default error response might not be JSON, so check content type
         if response.content_type == 'application/json':
-        data = response.get_json()
-        assert 'error' in data
+            data = response.get_json()
+            assert 'error' in data
         else:
             # Check that an error response was returned
             assert b'error' in response.data.lower() or b'internal server error' in response.data.lower()

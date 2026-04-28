@@ -95,7 +95,7 @@ docker build -f test/docker/Dockerfile.test -t fume-hood-test .
 This allows Dockerfiles to copy from:
 - `src/` - Application source code
 - `tests/` - Test files
-- `users/config/` - Configuration files
+- `src/hood_sash_automation/config/` - Configuration files
 - `pyproject.toml` - Dependencies
 
 ## Architecture Support

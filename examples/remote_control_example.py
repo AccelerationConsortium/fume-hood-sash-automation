@@ -1,14 +1,14 @@
-# users/examples/remote_control_example.py
+# examples/remote_control_example.py
 
 import requests
-import time
 import sys
+import time
 
-# --- Configuration ---
-# IMPORTANT: Replace with the IP address or hostname of your Raspberry Pi.
-PI_HOST = "raspberrypi.local"
+# Replace with your Raspberry Pi Wi-Fi/LAN IP or Tailscale IP.
+PI_HOST = "100.x.y.z"
 ACTUATOR_PORT = 5000
 BASE_URL = f"http://{PI_HOST}:{ACTUATOR_PORT}"
+
 
 def check_service_status():
     """Checks if the actuator service is running before starting."""
@@ -19,9 +19,10 @@ def check_service_status():
         return True
     except requests.exceptions.RequestException as e:
         print(f"Error: Could not connect to the actuator service at {BASE_URL}.")
-        print(f"Please ensure the service is running on the Pi and that the PI_HOST is correct.")
+        print("Please ensure the service is running on the Pi and PI_HOST is correct.")
         print(f"Details: {e}")
         return False
+
 
 def move_to_position(position):
     """Sends a command to move the sash to a specific position."""
@@ -35,6 +36,7 @@ def move_to_position(position):
         print(f"Error moving to position {position}: {e}")
         return False
 
+
 def get_status():
     """Polls the actuator for its current status."""
     try:
@@ -44,6 +46,7 @@ def get_status():
     except requests.exceptions.RequestException as e:
         print(f"Error getting status: {e}")
         return None
+
 
 def monitor_movement():
     """Polls the status endpoint every 0.5 seconds until movement stops."""
@@ -57,31 +60,27 @@ def monitor_movement():
                 print(f"Movement finished. Final position: {current_pos}")
                 break
         else:
-            # Error getting status, stop monitoring
             break
         time.sleep(0.5)
 
+
 def run_sequence():
     """Executes the full sequence of sash movements."""
-    # 1. Go to Home position
     if move_to_position(1):
         monitor_movement()
 
-    # Give it a moment before starting the sequence
     time.sleep(2)
 
-    # 2. Cycle through all other positions
-    for i in range(2, 6):
-        if move_to_position(i):
+    for position in range(2, 6):
+        if move_to_position(position):
             monitor_movement()
-        # Pause before moving to the next position
         time.sleep(2)
 
-    # 3. Return to home at the end
     if move_to_position(1):
         monitor_movement()
 
-    print("\n✅ Sequence complete.")
+    print("\nSequence complete.")
+
 
 if __name__ == "__main__":
     if not check_service_status():

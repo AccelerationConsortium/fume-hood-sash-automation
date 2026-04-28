@@ -28,7 +28,6 @@ COPY tests/docker-test/mock_hardware /app/mock_hardware
 COPY pyproject.toml README.md ./
 COPY src ./src
 COPY tests/docker-test/tests ./tests
-COPY users/config ./config
 
 # Install the project with all dependencies
 RUN pip install -e .[actuator,sensor,test]

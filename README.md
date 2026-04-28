@@ -58,12 +58,12 @@ After installation, here's how to get the API service running:
 
 3. **Use the remote control example:**
    ```bash
-   python users/examples/remote_control_example.py
+   python examples/remote_control_example.py
    ```
 
 ## Configuration
 
-All hardware and application settings are managed via YAML files in the `/users/config` directory. Before running the services, you should review and customize `users/config/actuator_config.yaml` and `users/config/sensor_config.yaml` to match your specific hardware setup (e.g., GPIO pin numbers, I2C addresses). The files are heavily commented to explain each setting.
+All hardware and application settings are managed via YAML files in `src/hood_sash_automation/config`. Before running the services, you should review and customize `src/hood_sash_automation/config/actuator_config.yaml` and `src/hood_sash_automation/config/sensor_config.yaml` to match your specific hardware setup (e.g., GPIO pin numbers, I2C addresses). The files are heavily commented to explain each setting. If you need to use a config outside the package, set `HOOD_SASH_ACTUATOR_CONFIG` or `HOOD_SASH_SENSOR_CONFIG` to the desired YAML path.
 
 ## Development Environment Setup
 
@@ -135,7 +135,7 @@ These instructions use mock libraries to allow for development and testing on a 
 For the services to run automatically on boot, they should be managed by `systemd`.
 
 ### 1. Configure Service Files
-The service files in the `systemd/` directory are templates. You must edit them to set the correct `User` and ensure the `WorkingDirectory` points to the absolute path of your project directory on the Pi. The scripts will automatically find the config files in the `users/config/` subdirectory.
+The service files in the `systemd/` directory are templates. You must edit them to set the correct `User` and ensure the `WorkingDirectory` points to the absolute path of your project directory on the Pi. The services load their default config files from `src/hood_sash_automation/config`.
 
 ### 2. Install the Services
 Copy the configured service files to the `systemd` directory and set the correct permissions:
@@ -205,9 +205,12 @@ sudo systemctl status sensor.service
 
 Once the API service is running, you can control it via HTTP requests:
 
+For the full endpoint reference and dashboard integration notes, see the
+[API Guide](src/hood_sash_automation/api/API.md).
+
 #### Actuator API (Port 5000)
 
-Set a base URL for the Pi. This can be a hostname, LAN IP, or Tailscale IP:
+Set a base URL for the Pi. Use the Wi-Fi/LAN IP or Tailscale IP:
 ```bash
 PI=http://100.64.254.100:5000
 ```
@@ -315,7 +318,7 @@ Example response:
   ```
 
 ## Remote Control Example
-The `users/examples/` directory contains an example script, `remote_control_example.py`, that demonstrates how to control the sash from any computer on the same network.
+The `examples/` directory contains `remote_control_example.py`, which demonstrates how to control the sash from any computer on the same network.
 
 ### Prerequisites
 **The API service must be running on your Raspberry Pi first** (see [Starting the API Service](#starting-the-api-service) above).
@@ -325,10 +328,10 @@ The `users/examples/` directory contains an example script, `remote_control_exam
     ```bash
     pip install requests
     ```
-2.  **Configure Host**: Open `users/examples/remote_control_example.py` and change the `PI_HOST` variable to the IP address or hostname of your Raspberry Pi.
+2.  **Configure Host**: Open `examples/remote_control_example.py` and change the `PI_HOST` variable to the Wi-Fi/LAN IP or Tailscale IP of your Raspberry Pi.
 3.  **Run the Script**:
     ```bash
-    python users/examples/remote_control_example.py
+    python examples/remote_control_example.py
     ```
 
 ### What It Does
@@ -341,7 +344,7 @@ The script will:
 
 ### Example Output
 ```
-Successfully connected to the actuator service at http://raspberrypi.local:5000
+Successfully connected to the actuator service at http://100.x.y.z:5000
 
 >>> Sending command to move to position 1...
 API Response: Moving to position 1
@@ -361,18 +364,123 @@ Sequence complete.
 
 This project uses a comprehensive three-layer testing approach for safe development and deployment.
 
-**See [tests/Test.md](tests/Test.md) for complete testing documentation.**
+### Quick Start Testing
 
-### Quick Start
+#### Development Testing (on your laptop)
 ```bash
 # Development testing (local laptop)
 ./tests/docker-test/scripts/test_local.sh integration
 
-# Pi actuator hardware access smoke test
-python tests/device-test/smoke_tests.py --component actuator
+# If integration passes, run full tests
+./tests/docker-test/scripts/test_local.sh all
+```
 
-# Running actuator API test
-python tests/device-test/api_service_test.py --service actuator
+#### Pi Testing (on deployed Raspberry Pi)
+```bash
+# Deploy to Pi
+git push && ssh sdl2@your-pi-ip "cd ~/fume-hood-sash-automation && git pull"
+
+# Pi actuator hardware access smoke test
+ssh sdl2@your-pi-ip "cd ~/fume-hood-sash-automation && source venv/bin/activate && python tests/device-test/smoke_tests.py --component actuator"
+
+# Running actuator API service test
+ssh sdl2@your-pi-ip "cd ~/fume-hood-sash-automation && source venv/bin/activate && python tests/device-test/api_service_test.py --service actuator"
+```
+
+#### Hardware Integration
+```bash
+# Only after Pi testing passes - start services with real hardware
+ssh sdl2@your-pi-ip "sudo systemctl start actuator.service"
+```
+
+### Testing Strategy
+
+| Test Layer | Where | Duration | Coverage | Safety |
+|------------|-------|----------|----------|---------|
+| Docker Tests | Local laptop | 5-30s | Business logic, mocked hardware | Completely safe |
+| Pi Device Tests | Raspberry Pi | 30-60s | ARM compatibility, GPIO/I2C access | Safe when relays are stopped |
+| Hardware Tests | Pi + devices | Manual | Full integration | Requires connected hardware and supervision |
+
+### Pi Testing Without Hardware Movement
+
+Pi smoke tests validate the environment and safe hardware access before movement tests:
+
+- Code compatibility on ARM/Pi OS
+- GPIO and I2C access
+- Python module imports
+- Configuration loading
+- Safe relay setup and Hall sensor reads
+
+```bash
+cd ~/fume-hood-sash-automation
+source venv/bin/activate
+sudo systemctl stop actuator.service
+python tests/device-test/smoke_tests.py --component actuator
+sudo systemctl start actuator.service
+```
+
+Expected successful summary:
+```text
+Actuator tests: 5/5 passed
+```
+
+### Detailed Testing Documentation
+
+#### Docker Testing
+- [Docker Testing Guide](tests/docker-test/Docker_Test.md) - local development testing with mocked hardware.
+- Fast iteration and development testing.
+- Completely safe for development environments.
+- Covers business logic and API endpoints.
+
+#### Device Testing
+- [Device Testing Guide](tests/device-test/Device_Test.md) - Raspberry Pi smoke and API testing.
+- Real Pi hardware validation.
+- GPIO/I2C access verification.
+- ARM/Pi OS compatibility testing.
+
+#### Hardware Integration Testing
+- [Pi Hardware Setup](tests/device-test/Device_Test.md#pi-zero-2w-specific-setup) - interface configuration and optimization.
+- Full system integration with connected devices.
+- Real sensor and actuator testing.
+- Production deployment validation.
+
+### Test Structure
+
+```text
+tests/
+|-- docker-test/              # Local Docker testing
+|   |-- Docker_Test.md        # Docker testing guide
+|   |-- scripts/              # Testing scripts
+|   `-- tests/                # Mocked logic tests
+`-- device-test/              # Pi device testing
+    |-- Device_Test.md        # Device testing guide
+    |-- smoke_tests.py        # Pi hardware access smoke test
+    `-- api_service_test.py   # Running API service test
+```
+
+### Testing Best Practices
+
+1. Start with Docker tests for fast logic feedback when changing code.
+2. Run Pi smoke tests before movement tests.
+3. Keep `home_on_startup: false` while commissioning.
+4. Only connect or move hardware after Pi tests pass.
+5. Keep a physical stop or power cutoff ready during movement tests.
+
+### Troubleshooting
+
+#### Docker Tests
+- Permission errors: check Docker Desktop is running.
+- Import errors: rebuild the container with `./tests/docker-test/scripts/setup_local_only.sh`.
+
+#### Pi Device Tests
+- GPIO/I2C access: ensure the user is in `gpio` and `i2c` groups.
+- Module not found: activate `venv` and run `pip install -e ".[actuator]"`.
+- GPIO channel already in use: stop `actuator.service` before smoke tests.
+
+#### Hardware Integration
+- Device not responding: check physical connections and power.
+- Current sensor errors: verify I2C address and wiring with `sudo i2cdetect -y 1`.
+- Motor not moving: check relay connections, actuator power, and limit switches.
 ```
 
 ## Hardware

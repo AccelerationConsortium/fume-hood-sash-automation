@@ -2,6 +2,7 @@
 import signal
 import yaml
 import os
+from pathlib import Path
 from flask import Flask, request, jsonify
 from ..actuator.controller import SashActuator
 from ..actuator.buttons import PhysicalButtons
@@ -12,10 +13,10 @@ def create_app():
 
     def load_config():
         """Load configuration from YAML file."""
-        config_path = os.path.join(os.getcwd(), 'users', 'config', 'actuator_config.yaml')
-        if not os.path.exists(config_path):
-            # Fallback for when running tests where CWD might be different
-            config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'users', 'config', 'actuator_config.yaml'))
+        config_path = Path(os.environ.get(
+            "HOOD_SASH_ACTUATOR_CONFIG",
+            Path(__file__).resolve().parents[1] / "config" / "actuator_config.yaml"
+        ))
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
 
