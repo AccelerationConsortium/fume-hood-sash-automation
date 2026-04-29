@@ -2,14 +2,36 @@
 import signal
 import yaml
 import os
+import socket
+import fcntl
+import struct
 from pathlib import Path
 from flask import Flask, request, jsonify
 from ..actuator.controller import SashActuator
 from ..actuator.buttons import PhysicalButtons
 
+SIOCGIFADDR = 0x8915
+
+
+def get_interface_ip(interface_name):
+    """Return the IPv4 address for a network interface, or None if unavailable."""
+    if not interface_name:
+        return None
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        packed_name = struct.pack("256s", interface_name[:15].encode("utf-8"))
+        return socket.inet_ntoa(fcntl.ioctl(sock.fileno(), SIOCGIFADDR, packed_name)[20:24])
+    except OSError:
+        return None
+    finally:
+        sock.close()
+
+
 def create_app():
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__)
+    app.json.sort_keys = False
 
     def load_config():
         """Load configuration from YAML file."""
@@ -21,6 +43,12 @@ def create_app():
             return yaml.safe_load(f)
 
     config = load_config()
+    equipment_ip = config.get('equipment_ip') or get_interface_ip(
+        config.get('equipment_ip_interface', 'wlan0')
+    )
+    equipment_tailscale = config.get('equipment_tailscale') or get_interface_ip(
+        config.get('equipment_tailscale_interface', 'tailscale0')
+    )
     actuator_config = {
         'HALL_PINS': config['hall_pins'],
         'BOUNCE_MS': config['bounce_ms'],
@@ -38,8 +66,8 @@ def create_app():
         'LOG_DIR': config['log_dir'],
         'HOME_ON_STARTUP': config.get('home_on_startup', False),
         'EQUIPMENT_NAME': config.get('equipment_name', 'fume_hood_sash_actuator'),
-        'EQUIPMENT_IP': config.get('equipment_ip'),
-        'EQUIPMENT_TAILSCALE': config.get('equipment_tailscale'),
+        'EQUIPMENT_IP': equipment_ip,
+        'EQUIPMENT_TAILSCALE': equipment_tailscale,
     }
 
     actuator = SashActuator(actuator_config)

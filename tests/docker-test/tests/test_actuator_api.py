@@ -1,6 +1,7 @@
 # tests/test_actuator_api.py
 import pytest
 import os
+import socket
 
 # This fixture is automatically used by pytest for tests in this file.
 # It patches the SashActuator class *before* it's imported by the api_service.
@@ -53,6 +54,23 @@ def test_health_endpoint_returns_actuator_status(client_and_mock):
     }
     mock_actuator.get_status.assert_called_once()
 
+def test_get_interface_ip_returns_detected_address(mocker):
+    """Test interface IP detection from ioctl bytes."""
+    from hood_sash_automation.api.api_service import get_interface_ip
+
+    response = b'\x00' * 20 + socket.inet_aton("192.168.1.50") + b'\x00' * 232
+    mocker.patch('hood_sash_automation.api.api_service.fcntl.ioctl', return_value=response)
+
+    assert get_interface_ip("wlan0") == "192.168.1.50"
+
+def test_get_interface_ip_returns_none_for_missing_interface(mocker):
+    """Test interface IP detection handles unavailable interfaces."""
+    from hood_sash_automation.api.api_service import get_interface_ip
+
+    mocker.patch('hood_sash_automation.api.api_service.fcntl.ioctl', side_effect=OSError)
+
+    assert get_interface_ip("missing0") is None
+
 def test_equipment_status_endpoint_returns_full_schema(client_and_mock):
     """Test the /equipment/status endpoint."""
     client, mock_actuator = client_and_mock
@@ -74,6 +92,9 @@ def test_equipment_status_endpoint_returns_full_schema(client_and_mock):
 
     assert response.status_code == 200
     assert response.json == equipment_status
+    response_text = response.get_data(as_text=True)
+    assert response_text.index("equipment_name") < response_text.index("equipment_ip")
+    assert response_text.index("equipment_tailscale") < response_text.index("equipment_status")
     mock_actuator.get_equipment_status.assert_called_once()
 
 def test_move_endpoint_success(client_and_mock):

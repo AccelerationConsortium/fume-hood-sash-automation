@@ -3,8 +3,11 @@
 # Equipment Metadata
 # ------------------
 equipment_name: "fume_hood_sash_actuator"
+# Leave these blank to auto-detect from the interfaces below.
 equipment_ip:
 equipment_tailscale:
+equipment_ip_interface: "wlan0"
+equipment_tailscale_interface: "tailscale0"
 
 # GPIO Pins (BCM numbering)
 # -------------------------

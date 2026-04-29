@@ -191,6 +191,10 @@ GET /equipment/status
 This endpoint returns the full orchestration schema for dashboards and workflow
 clients.
 
+`equipment_ip` is auto-detected from `wlan0` by default, and
+`equipment_tailscale` is auto-detected from `tailscale0`. These interface names
+or the final IP values can be overridden in `actuator_config.yaml`.
+
 Example:
 
 ```bash

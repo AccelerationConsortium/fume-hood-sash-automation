@@ -73,6 +73,7 @@ After installation, here's how to get the API service running:
 - Config files live in `src/hood_sash_automation/config`.
 - Use `actuator_config.yaml` for the actuator Pi and `sensor_config.yaml` for the sensor Pi.
 - Review GPIO pins, I2C addresses, movement timeouts, and safety thresholds before deployment.
+- The actuator equipment status auto-detects Wi-Fi/LAN IP from `wlan0` and Tailscale IP from `tailscale0`; config values can override them if needed.
 - Keep `home_on_startup: false` while commissioning so the sash does not move when the service starts.
 - To use a config outside the package, set `HOOD_SASH_ACTUATOR_CONFIG` or `HOOD_SASH_SENSOR_CONFIG` to the YAML file path.
 
