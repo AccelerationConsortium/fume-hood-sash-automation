@@ -112,7 +112,7 @@ class ServiceTester:
             return json.loads(response.read().decode())
 
     def test_actuator_service(self):
-        """Test actuator API health, status, and position endpoints."""
+        """Test actuator API health, status, position, and equipment endpoints."""
         logging.info("Testing actuator API...")
 
         if self.start_processes:
@@ -125,6 +125,7 @@ class ServiceTester:
             health = self._request_json(ACTUATOR_URL, "/health")
             status = self._request_json(ACTUATOR_URL, "/status")
             position = self._request_json(ACTUATOR_URL, "/position")
+            equipment = self._request_json(ACTUATOR_URL, "/equipment/status")
         except (HTTPError, URLError, TimeoutError) as exc:
             logging.error(f"Actuator API request failed: {exc}")
             return False
@@ -138,8 +139,21 @@ class ServiceTester:
         if "position" not in position:
             logging.error(f"Unexpected actuator position response: {position}")
             return False
+        required_equipment_fields = {
+            "equipment_name",
+            "equipment_status",
+            "message",
+            "system_state",
+            "sash_position",
+            "target_position",
+            "sash_state",
+            "is_moving",
+        }
+        if not required_equipment_fields.issubset(equipment):
+            logging.error(f"Unexpected actuator equipment response: {equipment}")
+            return False
 
-        logging.info(f"Actuator API OK: {status}")
+        logging.info(f"Actuator API OK: {status}; equipment={equipment}")
         return True
 
     def test_sensor_service(self):

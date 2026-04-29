@@ -158,13 +158,26 @@ class TestAPIIntegration:
             'i2c_bus': 1, 'ina_addr': 0x45, 'r_shunt': 0.1, 'i_max': 3.0,
             'current_threshold_up': 1300, 'current_threshold_down': -1300,
             'max_movement_time': 10.0, 'position_timeout': 2.0,
-            'position_state_file': "/tmp/test_pos", 'log_dir': "/tmp/test_log"
+            'position_state_file': "/tmp/test_pos", 'log_dir': "/tmp/test_log",
+            'equipment_name': "fume_hood_sash_actuator",
+            'equipment_ip': "172.31.32.236",
+            'equipment_tailscale': "100.64.254.100",
         }
 
         with patch('hood_sash_automation.api.api_service.SashActuator') as mock_actuator_class:
             # Configure the mock actuator instance
             mock_instance = MagicMock()
             mock_instance.get_status.return_value = {"position": 2, "moving": False}
+            mock_instance.get_equipment_status.return_value = {
+                "equipment_name": "fume_hood_sash_actuator",
+                "equipment_status": "ready",
+                "message": "Hardware ready - System is ACTIVE",
+                "system_state": "active",
+                "sash_position": 2,
+                "target_position": None,
+                "sash_state": "stationary",
+                "is_moving": False,
+            }
             mock_actuator_class.return_value = mock_instance
 
             with patch('yaml.safe_load', return_value=mock_config):
@@ -208,3 +221,15 @@ class TestAPIIntegration:
         for payload, expected_status in test_cases:
             response = client.post('/move', json=payload)
             assert response.status_code == expected_status
+
+    def test_equipment_status_integration(self, app_with_minimal_mocking):
+        """Test equipment status endpoint with real Flask context."""
+        client, mock_actuator = app_with_minimal_mocking
+
+        response = client.get('/equipment/status')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["equipment_status"] == "ready"
+        assert data["message"] == "Hardware ready - System is ACTIVE"
+        mock_actuator.get_equipment_status.assert_called()

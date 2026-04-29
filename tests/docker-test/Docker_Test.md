@@ -19,7 +19,7 @@ Fast local testing with mocked hardware for development.
 
 | Test | What It Does | Speed | When to Use |
 |------|--------------|-------|-------------|
-| **integration** | Components working together | 5-10s | After code changes |
+| **integration** | Components working together, including actuator API schema checks | 5-10s | After code changes |
 | **all** | Everything (unit + integration + E2E) | 30s | Before deployment |
 | **unit** | Individual components only | 2-5s | Quick debugging |
 

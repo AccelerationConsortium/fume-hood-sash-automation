@@ -6,8 +6,9 @@ SAMPLE_CONFIG = {
     'HALL_PINS': [5, 6, 13, 19, 26], 'BOUNCE_MS': 10, 'RELAY_EXT': 27, 'RELAY_RET': 17,
     'I2C_BUS': 1, 'INA_ADDR': 0x45, 'R_SHUNT': 0.1, 'I_MAX': 3.0,
     'CURRENT_THRESHOLD_UP': 1300, 'CURRENT_THRESHOLD_DOWN': -1300,
-    'MAX_MOVEMENT_TIME': 10.0, 'POSITION_TIMEOUT': 2.0,
-    'POSITION_STATE_FILE': "/tmp/test_pos", 'LOG_DIR': "/tmp/test_log"
+    'MAX_MOVEMENT_TIME': 10.0, 'POSITION_TIMEOUT': 2.0, 'POSITION_STATE_FILE': "/tmp/test_pos",
+    'LOG_DIR': "/tmp/test_log", 'EQUIPMENT_NAME': "fume_hood_sash_actuator",
+    'EQUIPMENT_IP': "172.31.32.236", 'EQUIPMENT_TAILSCALE': "100.64.254.100",
 }
 
 @pytest.fixture
@@ -79,3 +80,44 @@ def test_status_uses_live_hall_snapshot(mock_hardware):
 
     assert status == {"current_position": None, "is_moving": False}
     assert actuator.current_position is None
+
+
+def test_equipment_status_reports_ready_schema(mock_hardware):
+    """Test that equipment status uses the common orchestration schema."""
+    from hood_sash_automation.actuator.controller import SashActuator, HallArray
+
+    mock_hall_instance = HallArray.return_value
+    mock_hall_instance.snapshot.return_value = [1, 0, 1, 1, 1]
+
+    actuator = SashActuator(SAMPLE_CONFIG)
+    status = actuator.get_equipment_status()
+
+    assert status == {
+        "equipment_name": "fume_hood_sash_actuator",
+        "equipment_ip": "172.31.32.236",
+        "equipment_tailscale": "100.64.254.100",
+        "equipment_status": "ready",
+        "message": "Hardware ready - System is ACTIVE",
+        "system_state": "active",
+        "sash_position": 2,
+        "target_position": None,
+        "sash_state": "stationary",
+        "is_moving": False,
+    }
+
+
+def test_stop_sets_equipment_status_stopped(mock_hardware):
+    """Test that stop state persists for equipment status."""
+    from hood_sash_automation.actuator.controller import SashActuator, HallArray
+
+    mock_hall_instance = HallArray.return_value
+    mock_hall_instance.snapshot.return_value = [0, 1, 1, 1, 1]
+
+    actuator = SashActuator(SAMPLE_CONFIG)
+    actuator.stop()
+
+    status = actuator.get_equipment_status()
+    assert status["equipment_status"] == "stopped"
+    assert status["message"] == "Stop command issued - System is STOPPED"
+    assert status["system_state"] == "stopped"
+    assert status["sash_state"] == "stopped"

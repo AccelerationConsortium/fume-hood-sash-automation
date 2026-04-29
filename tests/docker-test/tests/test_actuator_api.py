@@ -53,19 +53,49 @@ def test_health_endpoint_returns_actuator_status(client_and_mock):
     }
     mock_actuator.get_status.assert_called_once()
 
+def test_equipment_status_endpoint_returns_full_schema(client_and_mock):
+    """Test the /equipment/status endpoint."""
+    client, mock_actuator = client_and_mock
+    equipment_status = {
+        "equipment_name": "fume_hood_sash_actuator",
+        "equipment_ip": "172.31.32.236",
+        "equipment_tailscale": "100.64.254.100",
+        "equipment_status": "ready",
+        "message": "Hardware ready - System is ACTIVE",
+        "system_state": "active",
+        "sash_position": 3,
+        "target_position": None,
+        "sash_state": "stationary",
+        "is_moving": False,
+    }
+    mock_actuator.get_equipment_status.return_value = equipment_status
+
+    response = client.get('/equipment/status')
+
+    assert response.status_code == 200
+    assert response.json == equipment_status
+    mock_actuator.get_equipment_status.assert_called_once()
+
 def test_move_endpoint_success(client_and_mock):
     """Test the /move endpoint for a successful request."""
     client, mock_actuator = client_and_mock
     # Arrange
     mock_actuator.move_to_position_async.return_value = True
+    equipment_status = {
+        "equipment_status": "moving",
+        "message": "Moving sash to position 4",
+        "is_moving": True,
+    }
+    mock_actuator.get_equipment_status.return_value = equipment_status
 
     # Act
     response = client.post('/move', json={'position': 4})
 
     # Assert
     assert response.status_code == 202
-    assert response.get_json() == {"message": "Moving to position 4"}
+    assert response.get_json() == equipment_status
     mock_actuator.move_to_position_async.assert_called_with(4)
+    mock_actuator.get_equipment_status.assert_called_with(message="Moving sash to position 4")
 
 def test_move_endpoint_invalid_position(client_and_mock):
     """Test the /move endpoint with an out-of-range position."""
@@ -82,6 +112,11 @@ def test_move_endpoint_actuator_busy(client_and_mock):
     client, mock_actuator = client_and_mock
     # Arrange
     mock_actuator.move_to_position_async.return_value = False
+    mock_actuator.get_equipment_status.return_value = {
+        "equipment_status": "moving",
+        "message": "Actuator is already moving.",
+        "is_moving": True,
+    }
 
     # Act
     response = client.post('/move', json={'position': 4})
@@ -93,10 +128,22 @@ def test_move_endpoint_actuator_busy(client_and_mock):
 def test_stop_endpoint(client_and_mock):
     """Test the /stop endpoint."""
     client, mock_actuator = client_and_mock
+    mock_actuator.get_equipment_status.return_value = {
+        "equipment_status": "stopped",
+        "message": "Stop command issued - System is STOPPED",
+        "is_moving": False,
+    }
     # Act
     response = client.post('/stop')
 
     # Assert
     assert response.status_code == 200
-    assert response.json == {'message': 'Stop command issued.'}
+    assert response.json == {
+        "equipment_status": "stopped",
+        "message": "Stop command issued - System is STOPPED",
+        "is_moving": False,
+    }
     mock_actuator.stop.assert_called_once()
+    mock_actuator.get_equipment_status.assert_called_once_with(
+        message="Stop command issued - System is STOPPED"
+    )

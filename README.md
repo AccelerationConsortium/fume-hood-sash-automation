@@ -170,12 +170,12 @@ The script will:
 Successfully connected to the actuator service at http://100.x.y.z:5000
 
 >>> Sending command to move to position 1...
-API Response: Moving to position 1
+API Response: Moving sash to position 1
   [Polling] Current Position: 1, Is Moving: false
 Movement finished. Final position: 1
 
 >>> Sending command to move to position 2...
-API Response: Moving to position 2
+API Response: Moving sash to position 2
   [Polling] Current Position: 1, Is Moving: true
   [Polling] Current Position: 2, Is Moving: false
 Movement finished. Final position: 2

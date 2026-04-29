@@ -36,7 +36,10 @@ def create_app():
         'POSITION_TIMEOUT': config['position_timeout'],
         'POSITION_STATE_FILE': config['position_state_file'],
         'LOG_DIR': config['log_dir'],
-        'HOME_ON_STARTUP': config.get('home_on_startup', False)
+        'HOME_ON_STARTUP': config.get('home_on_startup', False),
+        'EQUIPMENT_NAME': config.get('equipment_name', 'fume_hood_sash_actuator'),
+        'EQUIPMENT_IP': config.get('equipment_ip'),
+        'EQUIPMENT_TAILSCALE': config.get('equipment_tailscale'),
     }
 
     actuator = SashActuator(actuator_config)
@@ -56,14 +59,20 @@ def create_app():
             return jsonify({"error": "Invalid position. Must be an integer between 1 and 5."}), 400
 
         if app.actuator.move_to_position_async(position):
-            return jsonify({"message": f"Moving to position {position}"}), 202
+            return jsonify(app.actuator.get_equipment_status(
+                message=f"Moving sash to position {position}"
+            )), 202
         else:
-            return jsonify({"message": "Actuator is already moving."}), 409
+            return jsonify(app.actuator.get_equipment_status(
+                message="Actuator is already moving."
+            )), 409
 
     @app.route('/stop', methods=['POST'])
     def stop():
         app.actuator.stop()
-        return jsonify({"message": "Stop command issued."})
+        return jsonify(app.actuator.get_equipment_status(
+            message="Stop command issued - System is STOPPED"
+        ))
 
     @app.route('/status', methods=['GET'])
     def status():
@@ -75,6 +84,10 @@ def create_app():
             "status": "healthy",
             "actuator": app.actuator.get_status()
         })
+
+    @app.route('/equipment/status', methods=['GET'])
+    def equipment_status():
+        return jsonify(app.actuator.get_equipment_status())
 
     @app.route('/position', methods=['GET'])
     def get_position():

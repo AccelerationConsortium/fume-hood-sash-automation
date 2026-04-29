@@ -58,7 +58,25 @@ class TestActuatorServiceE2E:
         """Test actuator stop endpoint."""
         response = requests.post(f"{ACTUATOR_URL}/stop")
         assert response.status_code == 200
-        assert 'message' in response.json()
+        data = response.json()
+        assert data['equipment_status'] == 'stopped'
+        assert data['message'] == 'Stop command issued - System is STOPPED'
+        assert data['is_moving'] is False
+
+    def test_actuator_equipment_status_endpoint(self, wait_for_services):
+        """Test actuator equipment status endpoint returns orchestration schema."""
+        response = requests.get(f"{ACTUATOR_URL}/equipment/status")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert 'equipment_name' in data
+        assert data['equipment_status'] in {'ready', 'moving', 'stopped'}
+        assert 'message' in data
+        assert 'system_state' in data
+        assert 'sash_position' in data
+        assert 'target_position' in data
+        assert 'sash_state' in data
+        assert isinstance(data['is_moving'], bool)
 
 class TestSensorServiceE2E:
     """End-to-end tests for sensor service."""

@@ -19,7 +19,7 @@ python tests/device-test/smoke_tests.py
 python tests/device-test/smoke_tests.py --component actuator
 python tests/device-test/smoke_tests.py --component sensor
 
-# Test a running actuator API service
+# Test a running actuator API service, including /equipment/status
 python tests/device-test/api_service_test.py --service actuator
 ```
 
@@ -403,6 +403,7 @@ python tests/device-test/api_service_test.py --start-processes
 **When to use:**
 - Testing Flask service startup on Pi Zero 2W
 - Validating API endpoints respond correctly
+- Confirming the actuator orchestration schema at `/equipment/status`
 - Checking port binding and memory usage
 - Before deploying microservices
 

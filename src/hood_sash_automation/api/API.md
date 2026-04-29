@@ -182,6 +182,38 @@ Response:
 
 `current_position` is `null` when no position hall sensor is active.
 
+### Equipment Status
+
+```http
+GET /equipment/status
+```
+
+This endpoint returns the full orchestration schema for dashboards and workflow
+clients.
+
+Example:
+
+```bash
+curl "$PI/equipment/status"
+```
+
+Ready response:
+
+```json
+{
+  "equipment_name": "fume_hood_sash_actuator",
+  "equipment_ip": "172.31.32.236",
+  "equipment_tailscale": "100.64.254.100",
+  "equipment_status": "ready",
+  "message": "Hardware ready - System is ACTIVE",
+  "system_state": "active",
+  "sash_position": 3,
+  "target_position": null,
+  "sash_state": "stationary",
+  "is_moving": false
+}
+```
+
 ### Position
 
 ```http
@@ -221,7 +253,16 @@ Successful response:
 
 ```json
 {
-  "message": "Moving to position 3"
+  "equipment_name": "fume_hood_sash_actuator",
+  "equipment_ip": "172.31.32.236",
+  "equipment_tailscale": "100.64.254.100",
+  "equipment_status": "moving",
+  "message": "Moving sash to position 3",
+  "system_state": "active",
+  "sash_position": 2,
+  "target_position": 3,
+  "sash_state": "moving",
+  "is_moving": true
 }
 ```
 
@@ -239,7 +280,16 @@ Busy response:
 
 ```json
 {
-  "message": "Actuator is already moving."
+  "equipment_name": "fume_hood_sash_actuator",
+  "equipment_ip": "172.31.32.236",
+  "equipment_tailscale": "100.64.254.100",
+  "equipment_status": "moving",
+  "message": "Actuator is already moving.",
+  "system_state": "active",
+  "sash_position": 2,
+  "target_position": 3,
+  "sash_state": "moving",
+  "is_moving": true
 }
 ```
 
@@ -259,7 +309,16 @@ Response:
 
 ```json
 {
-  "message": "Stop command issued."
+  "equipment_name": "fume_hood_sash_actuator",
+  "equipment_ip": "172.31.32.236",
+  "equipment_tailscale": "100.64.254.100",
+  "equipment_status": "stopped",
+  "message": "Stop command issued - System is STOPPED",
+  "system_state": "stopped",
+  "sash_position": 2,
+  "target_position": null,
+  "sash_state": "stopped",
+  "is_moving": false
 }
 ```
 
@@ -295,13 +354,13 @@ Response:
 
 ## Dashboard Notes
 
-A future dashboard does not need a special API at first. It can use the actuator
-API directly:
+A dashboard or workflow client should use the actuator API directly:
 
-- Poll `GET /status` every `0.5` to `1` second.
-- Show `current_position` and `is_moving`.
+- Poll `GET /equipment/status` every `0.5` to `1` second for the full orchestration schema.
+- Show `equipment_status`, `message`, `sash_position`, `target_position`, and `is_moving`.
 - Add buttons for positions `1` through `5` that call `POST /move`.
 - Add an emergency stop button that calls `POST /stop`.
+- Use the full JSON response from `/move`, `/stop`, and `/equipment/status` for UI state.
 
 WebSockets can be added later if polling is not responsive enough.
 
@@ -310,5 +369,5 @@ WebSockets can be added later if polling is not responsive enough.
 - Keep `home_on_startup: false` while commissioning.
 - Confirm the physical stop button or power cutoff is available before movement
   testing.
-- Use `GET /status` before and after movement commands to confirm the sash state.
+- Use `GET /equipment/status` before and after movement commands to confirm the sash state.
 - Avoid sending repeated move commands while `is_moving` is `true`.

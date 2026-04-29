@@ -32,6 +32,8 @@ class SashActuator:
         self.hall.set_callback(self.hall_callback)
         self.stop_flag = threading.Event()
         self.movement_thread = None
+        self.equipment_status = "ready"
+        self.target_position = None
 
         self.display_mode = 'position' # Default display mode
 
@@ -80,6 +82,9 @@ class SashActuator:
         if mode is None:
             mode = self.display_mode
 
+        self.stop_flag.clear()
+        self.equipment_status = "moving"
+        self.target_position = target_pos
         self.movement_thread = threading.Thread(target=self.move_to_position, args=(target_pos, mode))
         self.movement_thread.start()
         return True
@@ -88,13 +93,16 @@ class SashActuator:
         logging.info(f"Attempting to move actuator to position {target_pos} in mode {mode}")
         if not 1 <= target_pos <= 5:
             logging.error(f"Invalid position {target_pos}. Use positions 1-5.")
+            self.equipment_status = "ready"
+            self.target_position = None
             return
 
-        self.stop_flag.clear()
         current_pos = self.get_current_position()
 
         if current_pos == target_pos:
             logging.info(f"Already at position {target_pos}")
+            self.equipment_status = "ready"
+            self.target_position = None
             return
 
         if current_pos is None:
@@ -103,6 +111,8 @@ class SashActuator:
                 if self.stop_flag.is_set():
                     logging.info("Stop requested during position search.")
                     self.relay.all_off()
+                    self.equipment_status = "stopped"
+                    self.target_position = None
                     return
                 logging.info(f"Pulse {pulse + 1}/5...")
                 self._pulse_down()
@@ -113,6 +123,8 @@ class SashActuator:
                     break
             else:
                 logging.error("Could not determine position after 5 pulses")
+                self.equipment_status = "ready"
+                self.target_position = None
                 return
 
         if current_pos < target_pos:
@@ -150,6 +162,11 @@ class SashActuator:
             time.sleep(0.01)
 
         self.relay.all_off()
+        if self.stop_flag.is_set():
+            self.equipment_status = "stopped"
+        else:
+            self.equipment_status = "ready"
+        self.target_position = None
         logging.info(f"Movement finished. Final position: {self.current_position}")
         self._write_position_state()
 
@@ -159,6 +176,8 @@ class SashActuator:
         if self.movement_thread and self.movement_thread.is_alive():
             self.movement_thread.join()
         self.relay.all_off()
+        self.equipment_status = "stopped"
+        self.target_position = None
         logging.info("Movement stopped by user.")
 
     def home_on_startup(self, mode=None):
@@ -238,6 +257,34 @@ class SashActuator:
         return {
             "current_position": self.get_current_position(),
             "is_moving": self.movement_thread.is_alive() if self.movement_thread else False,
+        }
+
+    def get_equipment_status(self, message=None):
+        status = self.get_status()
+        is_moving = status["is_moving"]
+        equipment_status = "moving" if is_moving else self.equipment_status
+        messages = {
+            "ready": "Hardware ready - System is ACTIVE",
+            "moving": "Sash is moving",
+            "stopped": "Stop command issued - System is STOPPED",
+        }
+        sash_states = {
+            "ready": "stationary",
+            "moving": "moving",
+            "stopped": "stopped",
+        }
+
+        return {
+            "equipment_name": self.config.get("EQUIPMENT_NAME", "fume_hood_sash_actuator"),
+            "equipment_ip": self.config.get("EQUIPMENT_IP"),
+            "equipment_tailscale": self.config.get("EQUIPMENT_TAILSCALE"),
+            "equipment_status": equipment_status,
+            "message": message or messages.get(equipment_status, "Hardware status unknown"),
+            "system_state": "active" if equipment_status in ("ready", "moving") else "stopped",
+            "sash_position": status["current_position"],
+            "target_position": self.target_position if is_moving else None,
+            "sash_state": sash_states.get(equipment_status, "unknown"),
+            "is_moving": is_moving,
         }
 
     def _write_position_state(self):

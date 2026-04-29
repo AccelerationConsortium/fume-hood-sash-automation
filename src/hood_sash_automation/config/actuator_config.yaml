@@ -1,5 +1,11 @@
 # Configuration for the Sash Actuator Service
 
+# Equipment Metadata
+# ------------------
+equipment_name: "fume_hood_sash_actuator"
+equipment_ip:
+equipment_tailscale:
+
 # GPIO Pins (BCM numbering)
 # -------------------------
 hall_pins: [5, 6, 13, 19, 26] # Hall effect sensors for position tracking
