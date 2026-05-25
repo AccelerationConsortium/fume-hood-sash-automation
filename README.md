@@ -2,6 +2,8 @@
 
 This project provides a robust, API-driven system to automate a fume hood sash. It is designed to run on a Raspberry Pi as a set of managed services.
 
+**This repo conforms to lab status spec v1.1.** The actuator service implements [STATUS_SPEC v1.1](https://github.com/AccelerationConsortium/ac-organic-lab/blob/main/docs/STATUS_SPEC.md): `GET /status` returns an `EquipmentStatus` envelope with `allowed_actions` and `details.claimed_by`; control commands live under `POST /control/sash/{move,stop}` and require an `X-Claim-Token` acquired via `POST /control/claim` + heartbeated via `POST /control/heartbeat`. The sensor service is still on its pre-spec shape and will migrate separately.
+
 ## Project Structure
 
 The project is organized into two main components within the `src/hood_sash_automation` directory:
@@ -15,7 +17,7 @@ This package is designed to be installed on a Raspberry Pi from a clone of this 
 
 ### Prerequisites
 
-- Python 3.7+
+- Python 3.10+
 - I2C enabled on the Raspberry Pi (`sudo raspi-config`)
 - GPIO and I2C tools installed from Raspberry Pi OS:
   ```bash
@@ -56,11 +58,22 @@ After installation, here's how to get the API service running:
 
 2. **Test the API** (in another terminal):
    ```bash
-   # Check if the service is running
-   curl http://localhost:5000/status
+   # Probe + health (always 200 unless the process is broken)
+   curl http://localhost:5000/                  # {equipment_id, equipment_name, protocol_version}
+   curl http://localhost:5000/health            # {"status":"healthy"}
+   curl http://localhost:5000/status            # full EquipmentStatus envelope
 
-   # Move to position 2
-   curl -X POST http://localhost:5000/move -H "Content-Type: application/json" -d '{"position": 2}'
+   # Acquire a claim, then move (STATUS_SPEC v1.1 enforces X-Claim-Token).
+   TOKEN=$(curl -sS -XPOST http://localhost:5000/control/claim \
+       -H 'Content-Type: application/json' \
+       -d '{"owner":"alice","session_id":"sess-1","ttl_s":30}' | jq -r .claim_token)
+
+   curl -X POST http://localhost:5000/control/sash/move \
+       -H "Content-Type: application/json" \
+       -H "X-Claim-Token: $TOKEN" \
+       -d '{"position": 2}'
+
+   curl -X POST http://localhost:5000/control/release -H "X-Claim-Token: $TOKEN"
    ```
 
 3. **Use the remote control example:**
@@ -73,7 +86,7 @@ After installation, here's how to get the API service running:
 - Config files live in `src/hood_sash_automation/config`.
 - Use `actuator_config.yaml` for the actuator Pi and `sensor_config.yaml` for the sensor Pi.
 - Review GPIO pins, I2C addresses, movement timeouts, and safety thresholds before deployment.
-- The actuator equipment status auto-detects Wi-Fi/LAN IP from `wlan0` and Tailscale IP from `tailscale0`; config values can override them if needed.
+- Network identity (IP, Tailscale address) is the registry's job, not the device's — `/status` no longer publishes `equipment_ip` / `equipment_tailscale` (see STATUS_SPEC §4.12).
 - Keep `home_on_startup: false` while commissioning so the sash does not move when the service starts.
 - To use a config outside the package, set `HOOD_SASH_ACTUATOR_CONFIG` or `HOOD_SASH_SENSOR_CONFIG` to the YAML file path.
 

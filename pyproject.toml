@@ -4,20 +4,25 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hood-sash-automation"
-version = "1.0.0"
+version = "1.1.0"
 authors = [
     { name = "Yang Cao", email = "cyrilcaoyang@gmail.com" },
     { name = "Kelvin Chow", email = "kelvinchow223@gmail.com" },
 ]
-description = "A package to control a fume hood sash actuator and sensor."
+description = "Fume hood sash actuator + sensor service. Conforms to STATUS_SPEC v1.1."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["Flask", "PyYAML"]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.5",
+    "PyYAML",
+]
 
 [project.optional-dependencies]
 sensor = []

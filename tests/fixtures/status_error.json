@@ -1,0 +1,35 @@
+{
+  "protocol_version": "1.1",
+  "equipment_id": "fume_hood_actuator",
+  "equipment_name": "Fume Hood Actuator",
+  "equipment_kind": "fume_hood",
+  "equipment_version": "1.1.0",
+  "host": "fume-hood-pi",
+  "equipment_status": "error",
+  "message": "Collision detected during downward movement",
+  "required_actions": [],
+  "device_time": "2026-05-25T19:34:00Z",
+  "uptime_seconds": 5101.0,
+  "components": {
+    "actuator": {
+      "connected": true,
+      "state": "idle"
+    },
+    "sash": {
+      "connected": true,
+      "state": "between_sensors",
+      "message": "Sash not parked at a hall sensor"
+    }
+  },
+  "metrics": {},
+  "last_error": {
+    "code": "collision_current",
+    "message": "Collision current detected during downward movement: -1450",
+    "severity": "error",
+    "timestamp": "2026-05-25T19:33:55Z"
+  },
+  "allowed_actions": [],
+  "details": {
+    "claimed_by": null
+  }
+}
