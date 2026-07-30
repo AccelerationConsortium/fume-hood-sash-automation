@@ -124,6 +124,8 @@ def build_status(
         equipment_version=equipment_version,
         host=socket.gethostname(),
         equipment_status=state,
+        activity=("running" if state == "busy" else "idle") if state in ("ready", "busy") else "unknown",
+        activity_since=datetime.now(timezone.utc) if state in ("ready", "busy") else None,
         message=message,
         required_actions=required_actions,
         device_time=datetime.now(timezone.utc),

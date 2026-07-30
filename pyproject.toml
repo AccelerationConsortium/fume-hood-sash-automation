@@ -9,7 +9,7 @@ authors = [
     { name = "Yang Cao", email = "cyrilcaoyang@gmail.com" },
     { name = "Kelvin Chow", email = "kelvinchow223@gmail.com" },
 ]
-description = "Fume hood sash actuator + sensor service. Conforms to STATUS_SPEC v1.1."
+description = "Fume hood sash actuator + sensor service. Conforms to STATUS_SPEC v1.2."
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -22,7 +22,11 @@ dependencies = [
     "uvicorn[standard]>=0.27",
     "pydantic>=2.5",
     "PyYAML",
+    "sdl-lab-contract",
 ]
+
+[tool.uv.sources]
+sdl-lab-contract = { git = "https://github.com/AccelerationConsortium/sdl-lab-contract", tag = "v1.2.0" }
 
 [project.optional-dependencies]
 sensor = []

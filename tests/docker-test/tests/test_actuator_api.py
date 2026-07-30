@@ -1,4 +1,4 @@
-"""STATUS_SPEC v1.1 API tests against the FastAPI app.
+"""STATUS_SPEC v1.2 API tests against the FastAPI app.
 
 The Pi hardware (RPi.GPIO, smbus2) is not present in the test environment;
 tests construct the app via :func:`build_app` with a hand-rolled fake actuator,
@@ -97,7 +97,7 @@ def test_probe(client: TestClient) -> None:
     r = client.get("/")
     assert r.status_code == 200
     body = r.json()
-    assert body["protocol_version"] == "1.1"
+    assert body["protocol_version"] == "1.2"
     assert body["equipment_id"] == "fume_hood_actuator"
 
 
